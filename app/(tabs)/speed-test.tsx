@@ -44,10 +44,10 @@ export default function SpeedTestPage() {
   const [realtimeSpeed, setRealtimeSpeed] = useState(0);
 
   const networkInfo = {
-    serverLocation: "New York, NY",
+    serverLocation: "Dirty South, Ds",
     serverDistance: "12.4 km",
     ipAddress: "192.168.1.105",
-    isp: "Verizon Wireless",
+    isp: "MTN",
     networkType: "5G NR",
     frequency: "3.7 GHz",
   };
@@ -532,14 +532,19 @@ export default function SpeedTestPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#111827",
+    backgroundColor: "#0f172a",
   },
   gradient: {
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerContent: {
     flexDirection: "row",
@@ -569,7 +574,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
