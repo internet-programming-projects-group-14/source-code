@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function SystemConfiguration() {
+export default function SettingsScreen() {
     const [anonymizedTelemetry, setAnonymizedTelemetry] = useState(true);
     const [locationServices, setLocationServices] = useState(true);
     const [technicalMetrics, setTechnicalMetrics] = useState(true);
@@ -92,7 +92,7 @@ export default function SystemConfiguration() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton}>
+                <TouchableOpacity style={styles.backButton} onPress={()=>{}}>
                     <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
                 <View style={styles.headerContent}>
