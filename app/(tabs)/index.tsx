@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { RelativePathString, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ScrollView,
@@ -7,9 +8,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import FeedbackPage from "./feedback"; // Import the FeedbackPage component
+import {
+  SafeAreaView,
+} from "react-native-safe-area-context";
+import FeedbackPage from "../../components/FeedbackForm";
 
 export default function NetworkQoEApp() {
+  const router = useRouter();
   const [currentView, setCurrentView] = useState("main");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
 
@@ -71,7 +76,7 @@ export default function NetworkQoEApp() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={[styles.container]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -89,132 +94,140 @@ export default function NetworkQoEApp() {
           <Feather name="settings" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
+      <ScrollView>
+        {/* Card: Network Analysis */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Network Analysis</Text>
+          <Text style={styles.statusBadge}>🟢 Active</Text>
 
-      {/* Card: Network Analysis */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Network Analysis</Text>
-        <Text style={styles.statusBadge}>🟢 Active</Text>
+          <View style={styles.metricBlock}>
+            <View style={styles.metric}>
+              <Feather name="radio" size={16} color="#93c5fd" />
+              <Text style={styles.metricLabel}> Signal Strength</Text>
+              <Text style={{ color: signalQuality.color, fontWeight: "bold" }}>
+                {signalQuality.text}
+              </Text>
+              <Text style={styles.metricValue}>
+                {networkMetrics.signalStrength} dBm
+              </Text>
+            </View>
 
-        <View style={styles.metricBlock}>
-          <View style={styles.metric}>
-            <Feather name="radio" size={16} color="#93c5fd" />
-            <Text style={styles.metricLabel}> Signal Strength</Text>
-            <Text style={{ color: signalQuality.color, fontWeight: "bold" }}>
-              {signalQuality.text}
-            </Text>
-            <Text style={styles.metricValue}>
-              {networkMetrics.signalStrength} dBm
-            </Text>
+            <View style={styles.metric}>
+              <Feather name="zap" size={16} color="#93c5fd" />
+              <Text style={styles.metricLabel}> Throughput</Text>
+              <Text style={styles.metricValue}>
+                {networkMetrics.dataSpeed} Mbps
+              </Text>
+              <Text style={styles.metricValue}>
+                ↑ {networkMetrics.uploadSpeed} Mbps
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.metric}>
-            <Feather name="zap" size={16} color="#93c5fd" />
-            <Text style={styles.metricLabel}> Throughput</Text>
-            <Text style={styles.metricValue}>
-              {networkMetrics.dataSpeed} Mbps
-            </Text>
-            <Text style={styles.metricValue}>
-              ↑ {networkMetrics.uploadSpeed} Mbps
-            </Text>
+          <View style={styles.detailsBlock}>
+            <View style={styles.detailsColumn}>
+              <Text style={styles.detailItem}>
+                Type: {networkMetrics.networkType}
+              </Text>
+              <Text style={styles.detailItem}>
+                Freq: {networkMetrics.frequency}
+              </Text>
+              <Text style={styles.detailItem}>
+                BW: {networkMetrics.bandwidth}
+              </Text>
+            </View>
+            <View style={styles.detailsColumn}>
+              <Text style={styles.detailItem}>
+                Latency: {networkMetrics.latency} ms
+              </Text>
+              <Text style={styles.detailItem}>
+                Cell ID: {networkMetrics.cellId}
+              </Text>
+              <Text style={styles.detailItem}>PCI: {networkMetrics.pci}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Card: Location Info */}
+        <View style={styles.card}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Feather name="map-pin" size={18} color="#34d399" />
+            <View>
+              <Text style={styles.cardTitle}>{networkMetrics.location}</Text>
+              <Text style={styles.detailItem}>
+                Carrier: {networkMetrics.carrier} • Contributing to area
+                analytics
+              </Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.detailsBlock}>
-          <View style={styles.detailsColumn}>
-            <Text style={styles.detailItem}>
-              Type: {networkMetrics.networkType}
-            </Text>
-            <Text style={styles.detailItem}>
-              Freq: {networkMetrics.frequency}
-            </Text>
-            <Text style={styles.detailItem}>
-              BW: {networkMetrics.bandwidth}
-            </Text>
-          </View>
-          <View style={styles.detailsColumn}>
-            <Text style={styles.detailItem}>
-              Latency: {networkMetrics.latency} ms
-            </Text>
-            <Text style={styles.detailItem}>
-              Cell ID: {networkMetrics.cellId}
-            </Text>
-            <Text style={styles.detailItem}>PCI: {networkMetrics.pci}</Text>
-          </View>
-        </View>
-      </View>
+        {/* QoE Feedback */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Rate Your Network Experience</Text>
+          <Text style={styles.headerSubtitle}>
+            Help improve network quality
+          </Text>
 
-      {/* Card: Location Info */}
-      <View style={styles.card}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <Feather name="map-pin" size={18} color="#34d399" />
-          <View>
-            <Text style={styles.cardTitle}>{networkMetrics.location}</Text>
-            <Text style={styles.detailItem}>
-              Carrier: {networkMetrics.carrier} • Contributing to area analytics
-            </Text>
+          <View style={styles.emojiRow}>
+            {[
+              { emoji: "😞", label: "Poor", value: 1 },
+              { emoji: "😐", label: "Fair", value: 2 },
+              { emoji: "🙂", label: "Good", value: 3 },
+              { emoji: "😊", label: "Great", value: 4 },
+              { emoji: "🤩", label: "Excellent", value: 5 },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.value}
+                onPress={() => handleEmojiRating(item.value)}
+                style={styles.emojiButton}
+              >
+                <Text style={styles.emoji}>{item.emoji}</Text>
+                <Text style={styles.emojiLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-      </View>
 
-      {/* QoE Feedback */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Rate Your Network Experience</Text>
-        <Text style={styles.headerSubtitle}>Help improve network quality</Text>
-
-        <View style={styles.emojiRow}>
+        {/* Navigation Buttons */}
+        <View style={styles.actionList}>
           {[
-            { emoji: "😞", label: "Poor", value: 1 },
-            { emoji: "😐", label: "Fair", value: 2 },
-            { emoji: "🙂", label: "Good", value: 3 },
-            { emoji: "😊", label: "Great", value: 4 },
-            { emoji: "🤩", label: "Excellent", value: 5 },
+            {
+              icon: "bar-chart",
+              text: "QoE Analytics & Metrics",
+              view: "statistics",
+            },
+            {
+              icon: "users",
+              text: "Community Network Data",
+              view: "community",
+            },
+            {
+              icon: "trending-up",
+              text: "Network Speed Test",
+              view: "speed-test",
+            },
           ].map((item) => (
             <TouchableOpacity
-              key={item.value}
-              onPress={() => handleEmojiRating(item.value)}
-              style={styles.emojiButton}
+              key={item.view}
+              onPress={() => router.push(`/${item.view}` as RelativePathString)}
+              style={styles.actionButton}
             >
-              <Text style={styles.emoji}>{item.emoji}</Text>
-              <Text style={styles.emojiLabel}>{item.label}</Text>
+              <View style={styles.actionButtonInner}>
+                <Feather name={item.icon as any} size={18} color="#fff" />
+                <Text style={styles.actionText}>{item.text}</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#ccc" />
             </TouchableOpacity>
           ))}
         </View>
-      </View>
-
-      {/* Navigation Buttons */}
-      <View style={styles.actionList}>
-        {[
-          {
-            icon: "bar-chart",
-            text: "QoE Analytics & Metrics",
-            view: "statistics",
-          },
-          { icon: "users", text: "Community Network Data", view: "community" },
-          {
-            icon: "trending-up",
-            text: "Network Speed Test",
-            view: "speedtest",
-          },
-        ].map((item) => (
-          <TouchableOpacity
-            key={item.view}
-            onPress={() => setCurrentView(item.view)}
-            style={styles.actionButton}
-          >
-            <View style={styles.actionButtonInner}>
-              <Feather name={item.icon as any} size={18} color="#fff" />
-              <Text style={styles.actionText}>{item.text}</Text>
-            </View>
-            <Feather name="chevron-right" size={18} color="#ccc" />
-          </TouchableOpacity>
-        ))}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#1f2937", paddingTop: 50 },
+  container: { flex: 1, backgroundColor: "#1f2937" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -264,7 +277,7 @@ const styles = StyleSheet.create({
   emojiButton: { alignItems: "center" },
   emoji: { fontSize: 28 },
   emojiLabel: { color: "#cbd5e1", fontSize: 12, marginTop: 4 },
-  actionList: { paddingHorizontal: 12, marginTop: 20 },
+  actionList: { paddingHorizontal: 12, marginTop: 20, paddingBottom: 10 },
   actionButton: {
     flexDirection: "row",
     justifyContent: "space-between",

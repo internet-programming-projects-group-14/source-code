@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-  StatusBar,
-  SafeAreaView,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+  View,
+} from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 interface FeedbackPageProps {
   onBack: () => void;
@@ -24,14 +23,14 @@ interface FeedbackPageProps {
   showRatingSelection?: boolean;
 }
 
-export default function FeedbackPage({ 
-  onBack, 
-  selectedRating, 
+export default function FeedbackPage({
+  onBack,
+  selectedRating,
   onEmojiSelect,
-  showRatingSelection = false 
+  showRatingSelection = false,
 }: FeedbackPageProps) {
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
-  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackText, setFeedbackText] = useState("");
   const [selectedContext, setSelectedContext] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -43,46 +42,80 @@ export default function FeedbackPage({
   };
 
   const getRatingInfo = (rating: number | null) => {
-    if (!rating) return { emoji: '🤔', label: 'Unknown', color: '#9CA3AF' };
+    if (!rating) return { emoji: "🤔", label: "Unknown", color: "#9CA3AF" };
 
     const ratings = [
-      { emoji: '😞', label: 'Poor Experience', color: '#F87171' },
-      { emoji: '😐', label: 'Fair Experience', color: '#FB923C' },
-      { emoji: '🙂', label: 'Good Experience', color: '#FBBF24' },
-      { emoji: '😊', label: 'Great Experience', color: '#34D399' },
-      { emoji: '🤩', label: 'Excellent Experience', color: '#6EE7B7' },
+      { emoji: "😞", label: "Poor Experience", color: "#F87171" },
+      { emoji: "😐", label: "Fair Experience", color: "#FB923C" },
+      { emoji: "🙂", label: "Good Experience", color: "#FBBF24" },
+      { emoji: "😊", label: "Great Experience", color: "#34D399" },
+      { emoji: "🤩", label: "Excellent Experience", color: "#6EE7B7" },
     ];
 
     return ratings[rating - 1] || ratings[0];
   };
 
   const issueTypes = [
-    { id: 'slow-data', label: 'Slow Data Speed', icon: 'wifi-outline', severity: 'high' },
-    { id: 'call-drops', label: 'Call Drops/Quality', icon: 'call-outline', severity: 'high' },
-    { id: 'poor-video', label: 'Video Streaming Issues', icon: 'videocam-outline', severity: 'medium' },
-    { id: 'web-loading', label: 'Web Page Loading', icon: 'globe-outline', severity: 'medium' },
-    { id: 'app-performance', label: 'App Performance', icon: 'phone-portrait-outline', severity: 'low' },
-    { id: 'no-connection', label: 'No Connection', icon: 'warning-outline', severity: 'critical' },
+    {
+      id: "slow-data",
+      label: "Slow Data Speed",
+      icon: "wifi-outline",
+      severity: "high",
+    },
+    {
+      id: "call-drops",
+      label: "Call Drops/Quality",
+      icon: "call-outline",
+      severity: "high",
+    },
+    {
+      id: "poor-video",
+      label: "Video Streaming Issues",
+      icon: "videocam-outline",
+      severity: "medium",
+    },
+    {
+      id: "web-loading",
+      label: "Web Page Loading",
+      icon: "globe-outline",
+      severity: "medium",
+    },
+    {
+      id: "app-performance",
+      label: "App Performance",
+      icon: "phone-portrait-outline",
+      severity: "low",
+    },
+    {
+      id: "no-connection",
+      label: "No Connection",
+      icon: "warning-outline",
+      severity: "critical",
+    },
   ];
 
   const contextOptions = [
-    { id: 'indoor', label: 'Indoor' },
-    { id: 'outdoor', label: 'Outdoor' },
-    { id: 'moving', label: 'Moving/Vehicle' },
-    { id: 'stationary', label: 'Stationary' },
-    { id: 'crowded', label: 'Crowded Area' },
-    { id: 'peak-hours', label: 'Peak Hours' },
+    { id: "indoor", label: "Indoor" },
+    { id: "outdoor", label: "Outdoor" },
+    { id: "moving", label: "Moving/Vehicle" },
+    { id: "stationary", label: "Stationary" },
+    { id: "crowded", label: "Crowded Area" },
+    { id: "peak-hours", label: "Peak Hours" },
   ];
 
   const toggleIssue = (issueId: string) => {
-    setSelectedIssues(prev =>
-      prev.includes(issueId) ? prev.filter(id => id !== issueId) : [...prev, issueId]
+    setSelectedIssues((prev) =>
+      prev.includes(issueId)
+        ? prev.filter((id) => id !== issueId)
+        : [...prev, issueId]
     );
   };
 
   const toggleContext = (contextId: string) => {
-    setSelectedContext(prev =>
-      prev.includes(contextId) ? prev.filter(id => id !== contextId) : [...prev, contextId]
+    setSelectedContext((prev) =>
+      prev.includes(contextId)
+        ? prev.filter((id) => id !== contextId)
+        : [...prev, contextId]
     );
   };
 
@@ -90,7 +123,7 @@ export default function FeedbackPage({
     setIsSubmitting(true);
 
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     setIsSubmitting(false);
     setSubmitted(true);
@@ -103,16 +136,16 @@ export default function FeedbackPage({
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical':
-        return '#EF4444';
-      case 'high':
-        return '#F97316';
-      case 'medium':
-        return '#EAB308';
-      case 'low':
-        return '#3B82F6';
+      case "critical":
+        return "#EF4444";
+      case "high":
+        return "#F97316";
+      case "medium":
+        return "#EAB308";
+      case "low":
+        return "#3B82F6";
       default:
-        return '#6B7280';
+        return "#6B7280";
     }
   };
 
@@ -121,7 +154,10 @@ export default function FeedbackPage({
   // Show rating selection screen if showRatingSelection is true
   if (showRatingSelection) {
     return (
-      <LinearGradient colors={['#111827', '#374151', '#111827']} style={styles.container}>
+      <LinearGradient
+        colors={["#111827", "#374151", "#111827"]}
+        style={styles.container}
+      >
         <StatusBar barStyle="light-content" />
         <SafeAreaView style={styles.safeArea}>
           {/* Header */}
@@ -131,14 +167,21 @@ export default function FeedbackPage({
             </TouchableOpacity>
             <View style={styles.headerTextContainer}>
               <Text style={styles.headerTitle}>Network Experience</Text>
-              <Text style={styles.headerSubtitle}>Rate your connection quality</Text>
+              <Text style={styles.headerSubtitle}>
+                Rate your connection quality
+              </Text>
             </View>
           </View>
 
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Rate Your Network Experience</Text>
-              <Text style={styles.ratingSubtitle}>Help improve network quality</Text>
+              <Text style={styles.ratingSubtitle}>
+                Help improve network quality
+              </Text>
 
               <View style={styles.emojiRow}>
                 {[
@@ -167,7 +210,10 @@ export default function FeedbackPage({
 
   if (submitted) {
     return (
-      <LinearGradient colors={['#111827', '#374151', '#111827']} style={styles.container}>
+      <LinearGradient
+        colors={["#111827", "#374151", "#111827"]}
+        style={styles.container}
+      >
         <StatusBar barStyle="light-content" />
         <View style={styles.successContainer}>
           <View style={styles.successCard}>
@@ -184,7 +230,10 @@ export default function FeedbackPage({
   }
 
   return (
-    <LinearGradient colors={['#111827', '#374151', '#111827']} style={styles.container}>
+    <LinearGradient
+      colors={["#111827", "#374151", "#111827"]}
+      style={styles.container}
+    >
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
@@ -194,11 +243,16 @@ export default function FeedbackPage({
           </TouchableOpacity>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>Network Experience Feedback</Text>
-            <Text style={styles.headerSubtitle}>Detailed quality assessment</Text>
+            <Text style={styles.headerSubtitle}>
+              Detailed quality assessment
+            </Text>
           </View>
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Rating Summary */}
           <View style={styles.card}>
             <View style={styles.ratingRow}>
@@ -207,7 +261,9 @@ export default function FeedbackPage({
                 <Text style={[styles.ratingLabel, { color: ratingInfo.color }]}>
                   {ratingInfo.label}
                 </Text>
-                <Text style={styles.ratingSubtext}>Selected rating: {selectedRating}/5</Text>
+                <Text style={styles.ratingSubtext}>
+                  Selected rating: {selectedRating}/5
+                </Text>
               </View>
             </View>
           </View>
@@ -218,7 +274,7 @@ export default function FeedbackPage({
               <Ionicons name="location-outline" size={20} color="#34D399" />
               <Text style={styles.cardTitle}>Context Information</Text>
             </View>
-            
+
             <View style={styles.contextInfoRow}>
               <View style={styles.contextInfoItem}>
                 <Text style={styles.contextLabel}>Location</Text>
@@ -226,26 +282,30 @@ export default function FeedbackPage({
               </View>
               <View style={styles.contextInfoItem}>
                 <Text style={styles.contextLabel}>Time</Text>
-                <Text style={styles.contextValue}>{new Date().toLocaleTimeString()}</Text>
+                <Text style={styles.contextValue}>
+                  {new Date().toLocaleTimeString()}
+                </Text>
               </View>
             </View>
 
             <View style={styles.sectionSpacing}>
               <Text style={styles.sectionTitle}>Situation Context</Text>
               <View style={styles.buttonGrid}>
-                {contextOptions.map(context => (
+                {contextOptions.map((context) => (
                   <TouchableOpacity
                     key={context.id}
                     onPress={() => toggleContext(context.id)}
                     style={[
                       styles.contextButton,
-                      selectedContext.includes(context.id) && styles.contextButtonSelected,
+                      selectedContext.includes(context.id) &&
+                        styles.contextButtonSelected,
                     ]}
                   >
                     <Text
                       style={[
                         styles.contextButtonText,
-                        selectedContext.includes(context.id) && styles.contextButtonTextSelected,
+                        selectedContext.includes(context.id) &&
+                          styles.contextButtonTextSelected,
                       ]}
                     >
                       {context.label}
@@ -260,7 +320,7 @@ export default function FeedbackPage({
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Specific Issues Experienced</Text>
             <View style={styles.issuesList}>
-              {issueTypes.map(issue => {
+              {issueTypes.map((issue) => {
                 const isSelected = selectedIssues.includes(issue.id);
                 return (
                   <TouchableOpacity
@@ -268,14 +328,14 @@ export default function FeedbackPage({
                     onPress={() => toggleIssue(issue.id)}
                     style={[
                       styles.issueButton,
-                      { borderColor: getSeverityColor(issue.severity) + '80' },
+                      { borderColor: getSeverityColor(issue.severity) + "80" },
                       isSelected && styles.issueButtonSelected,
                     ]}
                   >
                     <Ionicons
                       name={issue.icon as any}
                       size={20}
-                      color={isSelected ? 'white' : '#D1D5DB'}
+                      color={isSelected ? "white" : "#D1D5DB"}
                     />
                     <View style={styles.issueTextContainer}>
                       <Text
@@ -315,7 +375,8 @@ export default function FeedbackPage({
               textAlignVertical="top"
             />
             <Text style={styles.helperText}>
-              Your feedback helps network engineers identify and resolve issues more effectively
+              Your feedback helps network engineers identify and resolve issues
+              more effectively
             </Text>
           </View>
 
@@ -324,9 +385,12 @@ export default function FeedbackPage({
             <View style={styles.technicalDataHeader}>
               <Ionicons name="time-outline" size={20} color="#93C5FD" />
               <View style={styles.technicalDataTextContainer}>
-                <Text style={styles.technicalDataTitle}>Technical Data Included</Text>
+                <Text style={styles.technicalDataTitle}>
+                  Technical Data Included
+                </Text>
                 <Text style={styles.technicalDataText}>
-                  Signal strength, network type, location, and performance metrics will be automatically included with your feedback
+                  Signal strength, network type, location, and performance
+                  metrics will be automatically included with your feedback
                 </Text>
               </View>
             </View>
@@ -337,17 +401,24 @@ export default function FeedbackPage({
             <TouchableOpacity
               onPress={handleSubmit}
               disabled={isSubmitting}
-              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              style={[
+                styles.submitButton,
+                isSubmitting && styles.submitButtonDisabled,
+              ]}
             >
               {isSubmitting ? (
                 <View style={styles.submitButtonContent}>
                   <ActivityIndicator size="small" color="white" />
-                  <Text style={styles.submitButtonText}>Submitting Feedback...</Text>
+                  <Text style={styles.submitButtonText}>
+                    Submitting Feedback...
+                  </Text>
                 </View>
               ) : (
                 <View style={styles.submitButtonContent}>
                   <Ionicons name="send-outline" size={20} color="white" />
-                  <Text style={styles.submitButtonText}>Submit Network Feedback</Text>
+                  <Text style={styles.submitButtonText}>
+                    Submit Network Feedback
+                  </Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -369,13 +440,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   backButton: {
     padding: 8,
@@ -386,39 +457,39 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: "600",
+    color: "white",
   },
   headerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
   },
   scrollView: {
     flex: 1,
     padding: 16,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: "600",
+    color: "white",
     marginLeft: 8,
   },
   ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   ratingEmoji: {
     fontSize: 32,
@@ -426,14 +497,14 @@ const styles = StyleSheet.create({
   },
   ratingLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   ratingSubtext: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
   },
   contextInfoRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 16,
   },
   contextInfoItem: {
@@ -441,25 +512,25 @@ const styles = StyleSheet.create({
   },
   contextLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
   },
   contextValue: {
     fontSize: 14,
-    fontWeight: '500',
-    color: 'white',
+    fontWeight: "500",
+    color: "white",
   },
   sectionSpacing: {
     marginTop: 8,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '500',
-    color: 'white',
+    fontWeight: "500",
+    color: "white",
     marginBottom: 12,
   },
   buttonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   contextButton: {
@@ -467,36 +538,36 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     minWidth: (width - 64) / 2 - 4,
   },
   contextButtonSelected: {
-    backgroundColor: 'rgba(59, 130, 246, 0.3)',
-    borderColor: '#3B82F6',
+    backgroundColor: "rgba(59, 130, 246, 0.3)",
+    borderColor: "#3B82F6",
   },
   contextButtonText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
   },
   contextButtonTextSelected: {
-    color: 'white',
+    color: "white",
   },
   issuesList: {
     gap: 12,
   },
   issueButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
   issueButtonSelected: {
-    backgroundColor: 'rgba(59, 130, 246, 0.3)',
-    borderColor: '#3B82F6',
+    backgroundColor: "rgba(59, 130, 246, 0.3)",
+    borderColor: "#3B82F6",
   },
   issueTextContainer: {
     marginLeft: 12,
@@ -504,35 +575,35 @@ const styles = StyleSheet.create({
   },
   issueLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: "500",
+    color: "rgba(255, 255, 255, 0.8)",
   },
   issueSeverity: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textTransform: 'capitalize',
+    color: "rgba(255, 255, 255, 0.6)",
+    textTransform: "capitalize",
   },
   issueSelectedText: {
-    color: 'white',
+    color: "white",
   },
   textInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: "rgba(255, 255, 255, 0.2)",
     padding: 12,
-    color: 'white',
+    color: "white",
     fontSize: 14,
     minHeight: 100,
     marginBottom: 8,
   },
   helperText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
   },
   technicalDataHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
   },
   technicalDataTextContainer: {
     marginLeft: 12,
@@ -540,59 +611,59 @@ const styles = StyleSheet.create({
   },
   technicalDataTitle: {
     fontSize: 14,
-    fontWeight: '500',
-    color: 'white',
+    fontWeight: "500",
+    color: "white",
     marginBottom: 4,
   },
   technicalDataText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
     lineHeight: 16,
   },
   submitContainer: {
     paddingBottom: 32,
   },
   submitButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: "#2563EB",
     borderRadius: 12,
     paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 12,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   submitButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 8,
   },
   privacyText: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
   },
   successContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 16,
   },
   successCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 12,
     padding: 32,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: "rgba(255, 255, 255, 0.2)",
     maxWidth: 320,
-    width: '100%',
+    width: "100%",
   },
   successEmoji: {
     fontSize: 48,
@@ -600,33 +671,33 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: "600",
+    color: "white",
     marginBottom: 8,
   },
   successText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
+    color: "rgba(255, 255, 255, 0.7)",
+    textAlign: "center",
     marginBottom: 16,
   },
   redirectText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
   },
   ratingSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
     marginBottom: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emojiRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     paddingHorizontal: 8,
   },
   emojiButton: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 12,
     borderRadius: 12,
     minWidth: 60,
@@ -637,7 +708,7 @@ const styles = StyleSheet.create({
   },
   emojiLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
   },
 });
