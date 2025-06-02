@@ -8,9 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  SafeAreaView,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import FeedbackPage from "../../components/FeedbackForm";
 
 export default function NetworkQoEApp() {
@@ -277,7 +275,7 @@ const styles = StyleSheet.create({
   emojiButton: { alignItems: "center" },
   emoji: { fontSize: 28 },
   emojiLabel: { color: "#cbd5e1", fontSize: 12, marginTop: 4 },
-  actionList: { paddingHorizontal: 12, marginTop: 20, paddingBottom: 10 },
+  actionList: { paddingHorizontal: 12, marginTop: 20 },
   actionButton: {
     flexDirection: "row",
     justifyContent: "space-between",
