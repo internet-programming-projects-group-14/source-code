@@ -21,11 +21,11 @@ export default function NetworkQoEApp() {
     dataSpeed: 45.2,
     uploadSpeed: 12.8,
     latency: 23,
-    networkType: "5G NR",
+    networkType: "LTE",
     carrier: "Verizon",
     frequency: "3.7 GHz",
     bandwidth: "100 MHz",
-    location: "Downtown Area",
+    location: "DirtySouth",
     cellId: "0x1A2B3C",
     pci: 156,
   };
@@ -225,13 +225,17 @@ export default function NetworkQoEApp() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#1f2937" },
+  container: { flex: 1, backgroundColor: "#0f172a" },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "#00000030",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerContent: { flexDirection: "row", alignItems: "center", gap: 12 },
   signalIcon: {
@@ -245,7 +249,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#fff", fontWeight: "bold", fontSize: 16 },
   headerSubtitle: { color: "#93c5fd", fontSize: 12 },
   card: {
-    backgroundColor: "#ffffff10",
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     margin: 10,
     padding: 16,
     borderRadius: 12,

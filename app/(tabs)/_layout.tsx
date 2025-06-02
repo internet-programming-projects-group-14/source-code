@@ -6,6 +6,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons"; // Add this import
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -35,15 +36,34 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+        <Tabs.Screen
         name="speed-test"
         options={{
           title: "Speed Test",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.and.flag" color={color} />
+            <MaterialIcons name="speed" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="statistics"
+        options={{
+          title: "Analytics",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="analytics" size={24} color={color} />
+          ),
+        }}
+      />
+         <Tabs.Screen
+        name="community"
+        options={{
+          title: "Analytics-Community",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="people" size={24} color={color} />
           ),
         }}
       />
     </Tabs>
+
   );
 }
