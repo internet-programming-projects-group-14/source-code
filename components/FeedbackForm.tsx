@@ -540,6 +540,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
     backgroundColor: "rgba(255, 255, 255, 0.05)",
+    width: "100%",
     minWidth: (width - 64) / 2 - 4,
   },
   contextButtonSelected: {
