@@ -1,39 +1,38 @@
-import React, { useState } from 'react';
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  Dimensions,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import Svg, { Circle } from 'react-native-svg';
-import {
+  Activity,
   ChevronLeft,
+  Clock,
+  Download,
   Play,
   RotateCcw,
+  Signal,
+  Upload,
   Wifi,
   Zap,
-  Clock,
-  Signal,
-  Download,
-  Upload,
-  Activity,
-} from 'lucide-react-native';
+} from "lucide-react-native";
+import React, { useState } from "react";
+import {
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Svg, { Circle } from "react-native-svg";
 
-const { width } = Dimensions.get('window');
-
-interface SpeedTestPageProps {
-  onBack: () => void;
-}
-
-export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
-  const [testState, setTestState] = useState<'idle' | 'running' | 'completed'>('idle');
-  const [currentPhase, setCurrentPhase] = useState<'download' | 'upload' | 'latency' | null>(null);
+export default function SpeedTestPage() {
+  const router = useRouter();
+  const [testState, setTestState] = useState<"idle" | "running" | "completed">(
+    "idle"
+  );
+  const [currentPhase, setCurrentPhase] = useState<
+    "download" | "upload" | "latency" | null
+  >(null);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState({
     downloadSpeed: 0,
@@ -45,29 +44,43 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
   const [realtimeSpeed, setRealtimeSpeed] = useState(0);
 
   const networkInfo = {
-    serverLocation: 'New York, NY',
-    serverDistance: '12.4 km',
-    ipAddress: '192.168.1.105',
-    isp: 'Verizon Wireless',
-    networkType: '5G NR',
-    frequency: '3.7 GHz',
+    serverLocation: "New York, NY",
+    serverDistance: "12.4 km",
+    ipAddress: "192.168.1.105",
+    isp: "Verizon Wireless",
+    networkType: "5G NR",
+    frequency: "3.7 GHz",
+  };
+
+  const onBack = () => {
+    router.push("/");
   };
 
   const runSpeedTest = async () => {
-    setTestState('running');
+    setTestState("running");
     setProgress(0);
-    setResults({ downloadSpeed: 0, uploadSpeed: 0, latency: 0, jitter: 0, packetLoss: 0 });
+    setResults({
+      downloadSpeed: 0,
+      uploadSpeed: 0,
+      latency: 0,
+      jitter: 0,
+      packetLoss: 0,
+    });
 
     // Latency Test
-    setCurrentPhase('latency');
+    setCurrentPhase("latency");
     for (let i = 0; i <= 100; i += 10) {
       setProgress(i);
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    setResults((prev) => ({ ...prev, latency: Math.random() * 30 + 15, jitter: Math.random() * 5 + 1 }));
+    setResults((prev) => ({
+      ...prev,
+      latency: Math.random() * 30 + 15,
+      jitter: Math.random() * 5 + 1,
+    }));
 
     // Download Test
-    setCurrentPhase('download');
+    setCurrentPhase("download");
     setProgress(0);
     for (let i = 0; i <= 100; i += 5) {
       setProgress(i);
@@ -79,7 +92,7 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
     setResults((prev) => ({ ...prev, downloadSpeed: finalDownload }));
 
     // Upload Test
-    setCurrentPhase('upload');
+    setCurrentPhase("upload");
     setProgress(0);
     for (let i = 0; i <= 100; i += 8) {
       setProgress(i);
@@ -88,50 +101,78 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
       await new Promise((resolve) => setTimeout(resolve, 120));
     }
     const finalUpload = Math.random() * 15 + 10;
-    setResults((prev) => ({ ...prev, uploadSpeed: finalUpload, packetLoss: Math.random() * 0.5 }));
+    setResults((prev) => ({
+      ...prev,
+      uploadSpeed: finalUpload,
+      packetLoss: Math.random() * 0.5,
+    }));
 
     setCurrentPhase(null);
-    setTestState('completed');
+    setTestState("completed");
     setRealtimeSpeed(0);
   };
 
   const resetTest = () => {
-    setTestState('idle');
+    setTestState("idle");
     setCurrentPhase(null);
     setProgress(0);
-    setResults({ downloadSpeed: 0, uploadSpeed: 0, latency: 0, jitter: 0, packetLoss: 0 });
+    setResults({
+      downloadSpeed: 0,
+      uploadSpeed: 0,
+      latency: 0,
+      jitter: 0,
+      packetLoss: 0,
+    });
     setRealtimeSpeed(0);
   };
 
   const getPhaseLabel = () => {
     switch (currentPhase) {
-      case 'latency':
-        return 'Testing Network Latency...';
-      case 'download':
-        return 'Measuring Download Throughput...';
-      case 'upload':
-        return 'Measuring Upload Throughput...';
+      case "latency":
+        return "Testing Network Latency...";
+      case "download":
+        return "Measuring Download Throughput...";
+      case "upload":
+        return "Measuring Upload Throughput...";
       default:
-        return 'Initializing Speed Test...';
+        return "Initializing Speed Test...";
     }
   };
 
-  const getSpeedQuality = (speed: number, type: 'download' | 'upload') => {
-    const threshold = type === 'download' ? 25 : 10;
-    if (speed >= threshold * 2) return { label: 'Excellent', color: '#10b981' };
-    if (speed >= threshold * 1.5) return { label: 'Very Good', color: '#22c55e' };
-    if (speed >= threshold) return { label: 'Good', color: '#eab308' };
-    if (speed >= threshold * 0.5) return { label: 'Fair', color: '#f97316' };
-    return { label: 'Poor', color: '#ef4444' };
+  const getSpeedQuality = (speed: number, type: "download" | "upload") => {
+    const threshold = type === "download" ? 25 : 10;
+    if (speed >= threshold * 2) return { label: "Excellent", color: "#10b981" };
+    if (speed >= threshold * 1.5)
+      return { label: "Very Good", color: "#22c55e" };
+    if (speed >= threshold) return { label: "Good", color: "#eab308" };
+    if (speed >= threshold * 0.5) return { label: "Fair", color: "#f97316" };
+    return { label: "Poor", color: "#ef4444" };
   };
 
-  const Badge = ({ children, color = '#6b7280' }: { children: React.ReactNode; color?: string }) => (
-    <View style={[styles.badge, { backgroundColor: color + '33', borderColor: color + '66' }]}>
+  const Badge = ({
+    children,
+    color = "#6b7280",
+  }: {
+    children: React.ReactNode;
+    color?: string;
+  }) => (
+    <View
+      style={[
+        styles.badge,
+        { backgroundColor: color + "33", borderColor: color + "66" },
+      ]}
+    >
       <Text style={[styles.badgeText, { color }]}>{children}</Text>
     </View>
   );
 
-  const Card = ({ children, style = {} }: { children: React.ReactNode; style?: any }) => (
+  const Card = ({
+    children,
+    style = {},
+  }: {
+    children: React.ReactNode;
+    style?: any;
+  }) => (
     <BlurView intensity={20} style={[styles.card, style]}>
       {children}
     </BlurView>
@@ -174,7 +215,7 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <LinearGradient
-        colors={['#111827', '#334155', '#1f2937']}
+        colors={["#111827", "#334155", "#1f2937"]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -185,12 +226,17 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
             </TouchableOpacity>
             <View style={styles.headerText}>
               <Text style={styles.headerTitle}>Network Speed Test</Text>
-              <Text style={styles.headerSubtitle}>Comprehensive throughput analysis</Text>
+              <Text style={styles.headerSubtitle}>
+                Comprehensive throughput analysis
+              </Text>
             </View>
           </View>
         </BlurView>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Server Information */}
           <Card>
             <View style={styles.cardHeader}>
@@ -201,11 +247,15 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
               <View style={styles.infoGrid}>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Server Location</Text>
-                  <Text style={styles.infoValue}>{networkInfo.serverLocation}</Text>
+                  <Text style={styles.infoValue}>
+                    {networkInfo.serverLocation}
+                  </Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Distance</Text>
-                  <Text style={styles.infoValue}>{networkInfo.serverDistance}</Text>
+                  <Text style={styles.infoValue}>
+                    {networkInfo.serverDistance}
+                  </Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Your IP</Text>
@@ -225,11 +275,11 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
 
           {/* Speed Test Interface */}
           <Card>
-            {testState === 'idle' && (
+            {testState === "idle" && (
               <View style={styles.testInterface}>
                 <View style={styles.idleContainer}>
                   <LinearGradient
-                    colors={['#10b98133', '#3b82f633']}
+                    colors={["#10b98133", "#3b82f633"]}
                     style={styles.idleIcon}
                   >
                     <Wifi color="#ffffff" size={64} />
@@ -237,10 +287,14 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
                   <View style={styles.idleText}>
                     <Text style={styles.idleTitle}>Ready to Test</Text>
                     <Text style={styles.idleSubtitle}>
-                      Measure your network&apos;s download, upload speeds and latency
+                      Measure your network&apos;s download, upload speeds and
+                      latency
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={runSpeedTest} style={styles.startButton}>
+                  <TouchableOpacity
+                    onPress={runSpeedTest}
+                    style={styles.startButton}
+                  >
                     <Play color="#ffffff" size={20} />
                     <Text style={styles.startButtonText}>Start Speed Test</Text>
                   </TouchableOpacity>
@@ -248,20 +302,28 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
               </View>
             )}
 
-            {testState === 'running' && (
+            {testState === "running" && (
               <View style={styles.testInterface}>
                 <View style={styles.runningContainer}>
                   <View style={styles.progressContainer}>
                     <CircularProgress progress={progress} />
                     <View style={styles.progressContent}>
-                      {currentPhase === 'latency' && <Clock color="#eab308" size={32} />}
-                      {currentPhase === 'download' && <Download color="#3b82f6" size={32} />}
-                      {currentPhase === 'upload' && <Upload color="#a855f7" size={32} />}
+                      {currentPhase === "latency" && (
+                        <Clock color="#eab308" size={32} />
+                      )}
+                      {currentPhase === "download" && (
+                        <Download color="#3b82f6" size={32} />
+                      )}
+                      {currentPhase === "upload" && (
+                        <Upload color="#a855f7" size={32} />
+                      )}
                       <Text style={styles.progressValue}>
-                        {currentPhase === 'latency' ? `${progress}%` : `${realtimeSpeed.toFixed(1)}`}
+                        {currentPhase === "latency"
+                          ? `${progress}%`
+                          : `${realtimeSpeed.toFixed(1)}`}
                       </Text>
                       <Text style={styles.progressUnit}>
-                        {currentPhase === 'latency' ? 'Progress' : 'Mbps'}
+                        {currentPhase === "latency" ? "Progress" : "Mbps"}
                       </Text>
                     </View>
                   </View>
@@ -275,30 +337,48 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
               </View>
             )}
 
-            {testState === 'completed' && (
+            {testState === "completed" && (
               <View style={styles.testInterface}>
                 <View style={styles.completedContainer}>
                   <View style={styles.completedHeader}>
                     <Text style={styles.completedTitle}>Test Complete</Text>
-                    <Text style={styles.completedSubtitle}>Your network performance results</Text>
+                    <Text style={styles.completedSubtitle}>
+                      Your network performance results
+                    </Text>
                   </View>
 
                   <View style={styles.resultsGrid}>
                     <View style={styles.resultCard}>
                       <Download color="#3b82f6" size={24} />
-                      <Text style={styles.resultValue}>{results.downloadSpeed.toFixed(1)}</Text>
+                      <Text style={styles.resultValue}>
+                        {results.downloadSpeed.toFixed(1)}
+                      </Text>
                       <Text style={styles.resultLabel}>Mbps Download</Text>
-                      <Badge color={getSpeedQuality(results.downloadSpeed, 'download').color}>
-                        {getSpeedQuality(results.downloadSpeed, 'download').label}
+                      <Badge
+                        color={
+                          getSpeedQuality(results.downloadSpeed, "download")
+                            .color
+                        }
+                      >
+                        {
+                          getSpeedQuality(results.downloadSpeed, "download")
+                            .label
+                        }
                       </Badge>
                     </View>
 
                     <View style={styles.resultCard}>
                       <Upload color="#a855f7" size={24} />
-                      <Text style={styles.resultValue}>{results.uploadSpeed.toFixed(1)}</Text>
+                      <Text style={styles.resultValue}>
+                        {results.uploadSpeed.toFixed(1)}
+                      </Text>
                       <Text style={styles.resultLabel}>Mbps Upload</Text>
-                      <Badge color={getSpeedQuality(results.uploadSpeed, 'upload').color}>
-                        {getSpeedQuality(results.uploadSpeed, 'upload').label}
+                      <Badge
+                        color={
+                          getSpeedQuality(results.uploadSpeed, "upload").color
+                        }
+                      >
+                        {getSpeedQuality(results.uploadSpeed, "upload").label}
                       </Badge>
                     </View>
                   </View>
@@ -306,23 +386,32 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
                   <View style={styles.metricsGrid}>
                     <View style={styles.metricItem}>
                       <Clock color="#eab308" size={20} />
-                      <Text style={styles.metricValue}>{results.latency.toFixed(0)}</Text>
+                      <Text style={styles.metricValue}>
+                        {results.latency.toFixed(0)}
+                      </Text>
                       <Text style={styles.metricLabel}>ms Latency</Text>
                     </View>
                     <View style={styles.metricItem}>
                       <Activity color="#f97316" size={20} />
-                      <Text style={styles.metricValue}>{results.jitter.toFixed(1)}</Text>
+                      <Text style={styles.metricValue}>
+                        {results.jitter.toFixed(1)}
+                      </Text>
                       <Text style={styles.metricLabel}>ms Jitter</Text>
                     </View>
                     <View style={styles.metricItem}>
                       <Zap color="#ef4444" size={20} />
-                      <Text style={styles.metricValue}>{results.packetLoss.toFixed(2)}</Text>
+                      <Text style={styles.metricValue}>
+                        {results.packetLoss.toFixed(2)}
+                      </Text>
                       <Text style={styles.metricLabel}>% Loss</Text>
                     </View>
                   </View>
 
                   <View style={styles.actionButtons}>
-                    <TouchableOpacity onPress={resetTest} style={styles.actionButton}>
+                    <TouchableOpacity
+                      onPress={resetTest}
+                      style={styles.actionButton}
+                    >
                       <RotateCcw color="#ffffff" size={16} />
                       <Text style={styles.actionButtonText}>Test Again</Text>
                     </TouchableOpacity>
@@ -336,7 +425,7 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
           </Card>
 
           {/* Technical Details */}
-          {testState === 'completed' && (
+          {testState === "completed" && (
             <Card>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>Technical Analysis</Text>
@@ -353,33 +442,49 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
                   </View>
                   <View style={styles.technicalItem}>
                     <Text style={styles.infoLabel}>Peak Download</Text>
-                    <Text style={styles.infoValue}>{(results.downloadSpeed * 1.2).toFixed(1)} Mbps</Text>
+                    <Text style={styles.infoValue}>
+                      {(results.downloadSpeed * 1.2).toFixed(1)} Mbps
+                    </Text>
                   </View>
                   <View style={styles.technicalItem}>
                     <Text style={styles.infoLabel}>Peak Upload</Text>
-                    <Text style={styles.infoValue}>{(results.uploadSpeed * 1.15).toFixed(1)} Mbps</Text>
+                    <Text style={styles.infoValue}>
+                      {(results.uploadSpeed * 1.15).toFixed(1)} Mbps
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.performanceRating}>
-                  <Text style={styles.performanceTitle}>Performance Rating</Text>
+                  <Text style={styles.performanceTitle}>
+                    Performance Rating
+                  </Text>
                   <View style={styles.performanceItems}>
                     <View style={styles.performanceItem}>
-                      <Text style={styles.performanceLabel}>Streaming (4K)</Text>
-                      <Badge color={results.downloadSpeed >= 25 ? '#10b981' : '#ef4444'}>
-                        {results.downloadSpeed >= 25 ? 'Excellent' : 'Limited'}
+                      <Text style={styles.performanceLabel}>
+                        Streaming (4K)
+                      </Text>
+                      <Badge
+                        color={
+                          results.downloadSpeed >= 25 ? "#10b981" : "#ef4444"
+                        }
+                      >
+                        {results.downloadSpeed >= 25 ? "Excellent" : "Limited"}
                       </Badge>
                     </View>
                     <View style={styles.performanceItem}>
                       <Text style={styles.performanceLabel}>Video Calls</Text>
-                      <Badge color={results.uploadSpeed >= 5 ? '#10b981' : '#f97316'}>
-                        {results.uploadSpeed >= 5 ? 'Excellent' : 'Good'}
+                      <Badge
+                        color={results.uploadSpeed >= 5 ? "#10b981" : "#f97316"}
+                      >
+                        {results.uploadSpeed >= 5 ? "Excellent" : "Good"}
                       </Badge>
                     </View>
                     <View style={styles.performanceItem}>
                       <Text style={styles.performanceLabel}>Gaming</Text>
-                      <Badge color={results.latency <= 50 ? '#10b981' : '#eab308'}>
-                        {results.latency <= 50 ? 'Excellent' : 'Good'}
+                      <Badge
+                        color={results.latency <= 50 ? "#10b981" : "#eab308"}
+                      >
+                        {results.latency <= 50 ? "Excellent" : "Good"}
                       </Badge>
                     </View>
                   </View>
@@ -427,18 +532,18 @@ export default function SpeedTestPage({ onBack }: SpeedTestPageProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: "#111827",
   },
   gradient: {
     flex: 1,
   },
   header: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 16,
@@ -452,38 +557,38 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: "#ffffff",
   },
   headerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
   },
   scrollView: {
     flex: 1,
     padding: 16,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: "rgba(255, 255, 255, 0.2)",
     marginBottom: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   lastCard: {
     marginBottom: 32,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     paddingBottom: 12,
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: "#ffffff",
     marginLeft: 8,
   },
   cardContent: {
@@ -491,30 +596,30 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   infoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginBottom: 16,
   },
   infoItem: {
-    width: '50%',
+    width: "50%",
     paddingBottom: 12,
   },
   infoLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
     marginBottom: 4,
   },
   infoValue: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#ffffff',
+    fontWeight: "500",
+    color: "#ffffff",
   },
   badgeContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
   badge: {
     paddingHorizontal: 8,
@@ -524,252 +629,252 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   testInterface: {
     padding: 24,
   },
   idleContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   idleIcon: {
     width: 128,
     height: 128,
     borderRadius: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   idleText: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   idleTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: "#ffffff",
     marginBottom: 8,
   },
   idleSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
+    color: "rgba(255, 255, 255, 0.7)",
+    textAlign: "center",
   },
   startButton: {
-    backgroundColor: '#059669',
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: "#059669",
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 12,
   },
   startButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 8,
   },
   runningContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   progressContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 24,
   },
   circularProgressContainer: {
-    position: 'absolute',
+    position: "absolute",
   },
   circularProgress: {
-    transform: [{ rotate: '-90deg' }],
+    transform: [{ rotate: "-90deg" }],
   },
   progressContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     width: 120,
     height: 120,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 60,
   },
   progressValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: "bold",
+    color: "#ffffff",
     marginTop: 8,
   },
   progressUnit: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
   },
   runningText: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   runningTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: "#ffffff",
     marginBottom: 4,
   },
   runningSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
+    color: "rgba(255, 255, 255, 0.7)",
+    textAlign: "center",
   },
   completedContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   completedHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   completedTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: "#ffffff",
     marginBottom: 8,
   },
   completedSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
   },
   resultsGrid: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 16,
     marginBottom: 24,
-    width: '100%',
+    width: "100%",
   },
   resultCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: "rgba(255, 255, 255, 0.1)",
     padding: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   resultValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: "bold",
+    color: "#ffffff",
     marginTop: 8,
   },
   resultLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
     marginTop: 4,
     marginBottom: 8,
   },
   metricsGrid: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 16,
     marginBottom: 24,
-    width: '100%',
+    width: "100%",
   },
   metricItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   metricValue: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: "#ffffff",
     marginTop: 4,
   },
   metricLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
     marginTop: 2,
   },
   actionButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
-    width: '100%',
+    width: "100%",
   },
   actionButton: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: "rgba(255, 255, 255, 0.2)",
     paddingVertical: 12,
     paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   actionButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: 8,
   },
   technicalGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginBottom: 16,
   },
   technicalItem: {
-    width: '50%',
+    width: "50%",
     paddingBottom: 12,
   },
   performanceRating: {
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
   performanceTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#ffffff',
+    fontWeight: "500",
+    color: "#ffffff",
     marginBottom: 8,
   },
   performanceItems: {
     gap: 8,
   },
   performanceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   performanceLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
   },
   historyItems: {
     gap: 12,
   },
   historyItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 8,
     padding: 12,
   },
   historyTime: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#ffffff',
+    fontWeight: "500",
+    color: "#ffffff",
   },
   historyLocation: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
     marginTop: 2,
   },
   historyResults: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   historySpeed: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#ffffff',
+    fontWeight: "500",
+    color: "#ffffff",
   },
   historyLatency: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
     marginTop: 2,
   },
 });
