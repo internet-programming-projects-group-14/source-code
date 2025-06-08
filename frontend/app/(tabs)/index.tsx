@@ -1,15 +1,22 @@
 import { Feather } from "@expo/vector-icons";
 import { RelativePathString, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  NativeModules,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FeedbackPage from "../../components/FeedbackForm";
+import NetInfo from "@react-native-community/netinfo";
+import { NetworkInfo } from "react-native-network-info";
+import DeviceInfo from "react-native-device-info";
+import { requestAndroidPermissions } from "@/lib/permissions";
+
+const { SignalModule } = NativeModules;
 
 export default function NetworkQoEApp() {
   const router = useRouter();
@@ -29,6 +36,46 @@ export default function NetworkQoEApp() {
     cellId: "0x1A2B3C",
     pci: 156,
   };
+
+  const fetchMetrics = async () => {
+    try {
+      const hasPermissions = await requestAndroidPermissions();
+      if (!hasPermissions) return;
+
+      console.log("Available modules:", Object.keys(NativeModules));
+
+      if (SignalModule) {
+        const signalData = await SignalModule.getNetworkMetrics();
+        console.log("Signal data received:", signalData);
+      }
+
+      const netInfo = await NetInfo.fetch();
+      const carrier = await DeviceInfo.getCarrier();
+      const device = await DeviceInfo.getSystemName();
+
+      const start = Date.now();
+      await fetch("https://www.google.com", { method: "HEAD" });
+      const latency = Date.now() - start;
+
+      const finalMetrics = {
+        // ...signalData,
+        carrier,
+        device,
+        throughput: netInfo.details,
+        latency,
+        isConnected: netInfo.isConnected,
+      };
+
+      console.log(finalMetrics);
+    } catch (err) {
+      console.error("Error collecting metrics:", err);
+    }
+  };
+
+  useEffect(() => {
+    console.log("Here are your metrics ma'am");
+    fetchMetrics();
+  }, []);
 
   const getSignalQuality = (dbm: number) => {
     if (dbm >= -50) return { text: "Excellent", color: "#34d399", bars: 5 };
@@ -227,15 +274,15 @@ export default function NetworkQoEApp() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0f172a" },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingTop: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   headerContent: { flexDirection: "row", alignItems: "center", gap: 12 },
   signalIcon: {
@@ -249,7 +296,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#fff", fontWeight: "bold", fontSize: 16 },
   headerSubtitle: { color: "#93c5fd", fontSize: 12 },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     margin: 10,
     padding: 16,
     borderRadius: 12,

@@ -12,11 +12,13 @@
       "supportsTablet": true
     },
     "android": {
+      "permissions": ["ACCESS_NETWORK_STATE", "READ_PHONE_STATE"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.QoE"
     },
     "web": {
       "bundler": "metro",
