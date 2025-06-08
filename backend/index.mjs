@@ -4,6 +4,7 @@ import admin from "firebase-admin";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import serviceAccount from "./private-key-firebase.json" assert { type: "json" };
+import { generateUserId, generateSessionId } from "./lib/helper.mjs";
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -54,91 +55,77 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
   try {
     const { feedback, technicalData, deviceInfo } = req.body;
 
-    // Prepare the document data
-    const feedbackDocument = {
-      // User feedback data
-      rating: feedback.rating,
-      experienceType: getRatingDescription(feedback.rating),
+    const userId = feedback.userId || generateUserId(); // or pull from auth
+    const sessionId = generateSessionId();
+    const feedbackId = generateSubmissionId(); // reuse your function
+    const timestamp = admin.firestore.Timestamp.now();
 
-      // Context information
-      contextInfo: {
-        location: feedback.contextInfo.location || "Unknown",
-        time: feedback.contextInfo.time || admin.firestore.Timestamp.now(),
-        situationContext: feedback.contextInfo.situationContext || [],
-      },
+    // Store user if not exists
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      await userRef.set({
+        device_info: deviceInfo,
+        language_preference: feedback.language || "en",
+        permissions: feedback.permissions || [],
+      });
+    }
 
-      // Specific issues experienced
-      specificIssues: feedback.specificIssues || [],
-
-      // Additional user comments
-      additionalDetails: feedback.additionalDetails || "",
-
-      // Technical metrics (automatically detected)
-      technicalMetrics: {
-        signalStrength: technicalData?.signalStrength || null,
-        networkType: technicalData?.networkType || null,
-        carrier: technicalData?.carrier || null,
-        dataSpeed: technicalData?.dataSpeed || null,
-        uploadSpeed: technicalData?.uploadSpeed || null,
-        latency: technicalData?.latency || null,
-        frequency: technicalData?.frequency || null,
-        bandwidth: technicalData?.bandwidth || null,
-        cellId: technicalData?.cellId || null,
-        pci: technicalData?.pci || null,
-        isConnected: technicalData?.isConnected || null,
-        throughput: technicalData?.throughput || null,
-      },
-
-      // Device information
-      deviceInfo: {
-        platform: deviceInfo?.platform || null,
-        model: deviceInfo?.model || null,
-        osVersion: deviceInfo?.osVersion || null,
-        appVersion: deviceInfo?.appVersion || null,
-      },
-
-      // Metadata
-      submissionTime: admin.firestore.Timestamp.now(),
-      submissionId: generateSubmissionId(),
-      processed: false,
-
-      // Geolocation (if available)
-      coordinates: technicalData?.coordinates
-        ? {
-            latitude: technicalData.coordinates.latitude,
-            longitude: technicalData.coordinates.longitude,
-            accuracy: technicalData.coordinates.accuracy,
-          }
-        : null,
-    };
-
-    // Save to Firestore
-    const docRef = await db.collection("networkFeedback").add(feedbackDocument);
-
-    // Optionally, create analytics aggregation
-    await updateAnalytics(feedbackDocument);
-
-    // Log for monitoring
-    console.log(`Network feedback submitted: ${docRef.id}`, {
-      rating: feedback.rating,
-      location: feedback.contextInfo.location,
-      issues: feedback.specificIssues?.length || 0,
-      signalStrength: technicalData?.signalStrength,
+    // Store session
+    const sessionRef = db.collection("sessions").doc(sessionId);
+    await sessionRef.set({
+      user_id: userId,
+      start_time: timestamp,
+      end_time: timestamp,
     });
+
+    // Store feedback
+    await db
+      .collection("feedback")
+      .doc(feedbackId)
+      .set({
+        feedback_id: feedbackId,
+        user_id: userId,
+        timestamp,
+        rating: feedback.rating,
+        issue_type: feedback.specificIssues?.map((i) => i.type) || [],
+        comment: feedback.additionalDetails || "",
+      });
+
+    // Store signal metric
+    if (technicalData) {
+      await db.collection("signalMetrics").add({
+        session_id: sessionId,
+        timestamp,
+        signal_strength: technicalData.signalStrength,
+        network_type: technicalData.networkType,
+        operator: technicalData.carrier,
+        location: feedback.contextInfo?.location || "Unknown",
+      });
+    }
+
+    // Store location data (if available)
+    if (technicalData?.coordinates) {
+      await db.collection("locationData").add({
+        latitude: technicalData.coordinates.latitude,
+        longitude: technicalData.coordinates.longitude,
+        accuracy: technicalData.coordinates.accuracy,
+        timestamp,
+      });
+    }
 
     res.status(201).json({
       success: true,
-      submissionId: feedbackDocument.submissionId,
-      documentId: docRef.id,
-      message: "Network feedback submitted successfully",
+      feedbackId,
+      sessionId,
+      userId,
+      message: "Feedback submitted and normalized successfully.",
     });
   } catch (error) {
     console.error("Error submitting network feedback:", error);
-
     res.status(500).json({
       success: false,
-      error: "Failed to submit feedback",
-      message: "Internal server error occurred",
+      error: "Internal server error occurred",
     });
   }
 });
@@ -260,6 +247,16 @@ async function updateAnalytics(feedbackData) {
     console.error("Error updating analytics:", error);
   }
 }
+
+//Ping Google
+app.get("/ping-google", async (req, res) => {
+  try {
+    const response = await fetch("https://www.google.com", { method: "HEAD" });
+    res.status(response.status).send("OK");
+  } catch (err) {
+    res.status(500).send("Ping failed");
+  }
+});
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

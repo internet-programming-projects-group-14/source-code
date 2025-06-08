@@ -21,6 +21,9 @@ export async function requestAndroidPermissions() {
         [{ text: "OK", style: "default" }]
       );
     }
+    else{
+      console.log('All permissions granted')
+    }
 
     return allGranted;
   } catch (err) {
