@@ -1,10 +1,25 @@
-// backend/index.mjs or if using "type": "module" in package.json
+// backend/index.mjs
+import 'dotenv/config'; // This loads variables from .env into process.env
 import express from "express";
 import admin from "firebase-admin";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import serviceAccount from "./private-key-firebase.json" assert { type: "json" };
 import { generateUserId, generateSessionId } from "./lib/helper.mjs";
+
+// Firebase configuration from environment variables
+const serviceAccount = {
+  type: "service_account",
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
+  universe_domain: "googleapis.com"
+};
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -27,6 +42,50 @@ const limiter = rateLimit({
 });
 
 app.use("/api/", limiter);
+
+// Helper functions (moved up to avoid hoisting issues)
+function getRatingDescription(rating) {
+  const descriptions = {
+    1: "Poor Experience",
+    2: "Fair Experience", 
+    3: "Average Experience",
+    4: "Good Experience",
+    5: "Excellent Experience",
+  };
+  return descriptions[rating] || "Unknown";
+}
+
+function generateSubmissionId() {
+  return "fb_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+}
+
+async function updateAnalytics(feedbackData) {
+  try {
+    const analyticsRef = db.collection("analytics").doc("networkFeedback");
+
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(analyticsRef);
+
+      if (doc.exists) {
+        const data = doc.data();
+        transaction.update(analyticsRef, {
+          totalSubmissions: (data.totalSubmissions || 0) + 1,
+          lastUpdated: admin.firestore.Timestamp.now(),
+          [`ratingCount.${feedbackData.rating}`]:
+            (data.ratingCount?.[feedbackData.rating] || 0) + 1,
+        });
+      } else {
+        transaction.set(analyticsRef, {
+          totalSubmissions: 1,
+          lastUpdated: admin.firestore.Timestamp.now(),
+          ratingCount: { [feedbackData.rating]: 1 },
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error updating analytics:", error);
+  }
+}
 
 // Validation middleware
 const validateFeedback = (req, res, next) => {
@@ -55,9 +114,9 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
   try {
     const { feedback, technicalData, deviceInfo } = req.body;
 
-    const userId = feedback.userId || generateUserId(); // or pull from auth
+    const userId = feedback.userId || generateUserId();
     const sessionId = generateSessionId();
-    const feedbackId = generateSubmissionId(); // reuse your function
+    const feedbackId = generateSubmissionId();
     const timestamp = admin.firestore.Timestamp.now();
 
     // Store user if not exists
@@ -114,6 +173,9 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
       });
     }
 
+    // Update analytics
+    await updateAnalytics(feedback);
+
     res.status(201).json({
       success: true,
       feedbackId,
@@ -135,17 +197,14 @@ app.get("/api/network-feedback/analytics", async (req, res) => {
   try {
     const { startDate, endDate, location } = req.query;
 
-    let query = db.collection("networkFeedback");
+    let query = db.collection("feedback"); // Fixed collection name
 
     // Apply filters
     if (startDate) {
-      query = query.where("submissionTime", ">=", new Date(startDate));
+      query = query.where("timestamp", ">=", admin.firestore.Timestamp.fromDate(new Date(startDate)));
     }
     if (endDate) {
-      query = query.where("submissionTime", "<=", new Date(endDate));
-    }
-    if (location) {
-      query = query.where("contextInfo.location", "==", location);
+      query = query.where("timestamp", "<=", admin.firestore.Timestamp.fromDate(new Date(endDate)));
     }
 
     const snapshot = await query.limit(1000).get();
@@ -169,22 +228,12 @@ app.get("/api/network-feedback/analytics", async (req, res) => {
       analytics.ratingDistribution[data.rating]++;
 
       // Issue frequency
-      if (data.specificIssues) {
-        data.specificIssues.forEach((issue) => {
-          analytics.commonIssues[issue.type] =
-            (analytics.commonIssues[issue.type] || 0) + 1;
+      if (data.issue_type && Array.isArray(data.issue_type)) {
+        data.issue_type.forEach((issue) => {
+          analytics.commonIssues[issue] =
+            (analytics.commonIssues[issue] || 0) + 1;
         });
       }
-
-      // Location statistics
-      const location = data.contextInfo?.location || "Unknown";
-      analytics.locationStats[location] =
-        (analytics.locationStats[location] || 0) + 1;
-
-      // Network type statistics
-      const networkType = data.technicalMetrics?.networkType || "Unknown";
-      analytics.networkTypeStats[networkType] =
-        (analytics.networkTypeStats[networkType] || 0) + 1;
     });
 
     analytics.averageRating =
@@ -204,51 +253,7 @@ app.get("/api/network-feedback/analytics", async (req, res) => {
   }
 });
 
-// Helper functions
-function getRatingDescription(rating) {
-  const descriptions = {
-    1: "Poor Experience",
-    2: "Fair Experience",
-    3: "Average Experience",
-    4: "Good Experience",
-    5: "Excellent Experience",
-  };
-  return descriptions[rating] || "Unknown";
-}
-
-function generateSubmissionId() {
-  return "fb_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
-}
-
-async function updateAnalytics(feedbackData) {
-  try {
-    const analyticsRef = db.collection("analytics").doc("networkFeedback");
-
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(analyticsRef);
-
-      if (doc.exists) {
-        const data = doc.data();
-        transaction.update(analyticsRef, {
-          totalSubmissions: (data.totalSubmissions || 0) + 1,
-          lastUpdated: admin.firestore.Timestamp.now(),
-          [`ratingCount.${feedbackData.rating}`]:
-            (data.ratingCount?.[feedbackData.rating] || 0) + 1,
-        });
-      } else {
-        transaction.set(analyticsRef, {
-          totalSubmissions: 1,
-          lastUpdated: admin.firestore.Timestamp.now(),
-          ratingCount: { [feedbackData.rating]: 1 },
-        });
-      }
-    });
-  } catch (error) {
-    console.error("Error updating analytics:", error);
-  }
-}
-
-//Ping Google
+// Ping Google
 app.get("/ping-google", async (req, res) => {
   try {
     const response = await fetch("https://www.google.com", { method: "HEAD" });
@@ -268,7 +273,6 @@ app.get("/api/health", (req, res) => {
 });
 
 // 404 handler
-
 app.use((req, res) => {
   res.status(404).json({
     success: false,
