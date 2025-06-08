@@ -1,9 +1,10 @@
+import { NetworkMetrics } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
+  Alert,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -14,19 +15,19 @@ import {
   View,
 } from "react-native";
 
-const { width } = Dimensions.get("window");
-
 interface FeedbackPageProps {
   onBack: () => void;
   selectedRating: number | null;
   onEmojiSelect?: (rating: number) => void;
   showRatingSelection?: boolean;
+  networkMetrics: NetworkMetrics | null;
 }
 
 export default function FeedbackPage({
   onBack,
   selectedRating,
   onEmojiSelect,
+  networkMetrics,
   showRatingSelection = false,
 }: FeedbackPageProps) {
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
@@ -34,6 +35,95 @@ export default function FeedbackPage({
   const [selectedContext, setSelectedContext] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+
+    if (!networkMetrics) {
+      console.warn("No network metrics available");
+      Alert.alert("Error", "Network metrics missing. Please try again.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const {
+      signalStrength,
+      networkType,
+      carrier,
+      frequency,
+      bandwidth,
+      cellId,
+      pci,
+      dataSpeed,
+      uploadSpeed,
+      latency,
+      isConnected,
+      throughput,
+      location,
+      device,
+    } = networkMetrics;
+
+    const requestBody = {
+      feedback: {
+        userId: "user_12345", // Replace with actual user ID
+        rating: selectedRating,
+        contextInfo: {
+          location: location ? "Captured" : "Unknown",
+          time: new Date().toISOString(),
+          situationContext: selectedContext,
+        },
+        specificIssues: selectedIssues.map((type) => ({ type })),
+        additionalDetails: feedbackText,
+      },
+      technicalData: {
+        signalStrength,
+        networkType,
+        carrier,
+        frequency,
+        bandwidth,
+        cellId,
+        pci,
+        dataSpeed,
+        uploadSpeed,
+        latency,
+        isConnected,
+        throughput,
+        coordinates: location || null,
+      },
+      deviceInfo: {
+        platform: device.platform,
+        model: device.model || "Unknown",
+        osVersion: device.osVersion || "Unknown",
+      },
+    };
+
+    try {
+      const response = await fetch(
+        "http://localhost:3000/api/network-feedback",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Something went wrong!");
+      }
+
+      setSubmitted(true);
+      Alert.alert("Success", "Feedback submitted successfully!");
+    } catch (error) {
+      console.error("Submit error:", error);
+      Alert.alert("Error", "Failed to submit feedback.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleEmojiRating = (rating: number) => {
     if (onEmojiSelect) {
@@ -117,21 +207,6 @@ export default function FeedbackPage({
         ? prev.filter((id) => id !== contextId)
         : [...prev, contextId]
     );
-  };
-
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    setIsSubmitting(false);
-    setSubmitted(true);
-
-    // Auto redirect after success
-    setTimeout(() => {
-      onBack();
-    }, 3000);
   };
 
   const getSeverityColor = (severity: string) => {
