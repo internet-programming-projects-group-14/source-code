@@ -1,14 +1,10 @@
 // backend/index.mjs or if using "type": "module" in package.json
 import express from "express";
-import admin from "firebase-admin";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import serviceAccount from "./private-key-firebase.json" assert { type: "json" };
+import analyticsRouter from "./routes/analytics.mjs";
 import { generateUserId, generateSessionId } from "./lib/helper.mjs";
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+import admin from "./firebase.mjs";
 
 // Initialize Firestore
 const db = admin.firestore();
@@ -130,123 +126,8 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
   }
 });
 
-// Get feedback analytics (optional endpoint for dashboard)
-app.get("/api/network-feedback/analytics", async (req, res) => {
-  try {
-    const { startDate, endDate, location } = req.query;
-
-    let query = db.collection("networkFeedback");
-
-    // Apply filters
-    if (startDate) {
-      query = query.where("submissionTime", ">=", new Date(startDate));
-    }
-    if (endDate) {
-      query = query.where("submissionTime", "<=", new Date(endDate));
-    }
-    if (location) {
-      query = query.where("contextInfo.location", "==", location);
-    }
-
-    const snapshot = await query.limit(1000).get();
-
-    const analytics = {
-      totalSubmissions: snapshot.size,
-      averageRating: 0,
-      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-      commonIssues: {},
-      locationStats: {},
-      networkTypeStats: {},
-    };
-
-    let totalRating = 0;
-
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-
-      // Rating statistics
-      totalRating += data.rating;
-      analytics.ratingDistribution[data.rating]++;
-
-      // Issue frequency
-      if (data.specificIssues) {
-        data.specificIssues.forEach((issue) => {
-          analytics.commonIssues[issue.type] =
-            (analytics.commonIssues[issue.type] || 0) + 1;
-        });
-      }
-
-      // Location statistics
-      const location = data.contextInfo?.location || "Unknown";
-      analytics.locationStats[location] =
-        (analytics.locationStats[location] || 0) + 1;
-
-      // Network type statistics
-      const networkType = data.technicalMetrics?.networkType || "Unknown";
-      analytics.networkTypeStats[networkType] =
-        (analytics.networkTypeStats[networkType] || 0) + 1;
-    });
-
-    analytics.averageRating =
-      snapshot.size > 0 ? (totalRating / snapshot.size).toFixed(2) : 0;
-
-    res.json({
-      success: true,
-      analytics,
-      generatedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("Error fetching analytics:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch analytics",
-    });
-  }
-});
-
-// Helper functions
-function getRatingDescription(rating) {
-  const descriptions = {
-    1: "Poor Experience",
-    2: "Fair Experience",
-    3: "Average Experience",
-    4: "Good Experience",
-    5: "Excellent Experience",
-  };
-  return descriptions[rating] || "Unknown";
-}
-
-function generateSubmissionId() {
-  return "fb_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
-}
-
-async function updateAnalytics(feedbackData) {
-  try {
-    const analyticsRef = db.collection("analytics").doc("networkFeedback");
-
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(analyticsRef);
-
-      if (doc.exists) {
-        const data = doc.data();
-        transaction.update(analyticsRef, {
-          totalSubmissions: (data.totalSubmissions || 0) + 1,
-          lastUpdated: admin.firestore.Timestamp.now(),
-          [`ratingCount.${feedbackData.rating}`]:
-            (data.ratingCount?.[feedbackData.rating] || 0) + 1,
-        });
-      } else {
-        transaction.set(analyticsRef, {
-          totalSubmissions: 1,
-          lastUpdated: admin.firestore.Timestamp.now(),
-          ratingCount: { [feedbackData.rating]: 1 },
-        });
-      }
-    });
-  } catch (error) {
-    console.error("Error updating analytics:", error);
-  }
-}
+//Moute route module
+app.use("/analytics", analyticsRouter);
 
 //Ping Google
 app.get("/ping-google", async (req, res) => {
