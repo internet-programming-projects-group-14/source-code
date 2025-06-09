@@ -46,7 +46,7 @@ export class AnalyticsService {
   ): Promise<AnalyticsResponse> {
     try {
       const response = await fetch(
-        `${this.baseUrl}?period=${period}&metric=${metric}`,
+        `http://localhost:3000/analytics?period=${period}&metric=${metric}`,
         {
           method: "GET",
           headers: {
@@ -69,7 +69,7 @@ export class AnalyticsService {
 
   async getSummary(): Promise<SummaryResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/summary`, {
+      const response = await fetch(`http://localhost:3000/analytics/summary`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -88,4 +88,3 @@ export class AnalyticsService {
     }
   }
 }
-// Create service instance

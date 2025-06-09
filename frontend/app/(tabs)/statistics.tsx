@@ -19,34 +19,17 @@ import {
   RefreshCw,
   Wifi,
 } from "lucide-react-native";
-import { AnalyticsData, AnalyticsSummary, SummaryResponse } from "@/lib/types";
-import { AnalyticsService } from "@/lib/anayticsService";
 
 const { width } = Dimensions.get("window");
 
 export default function StatisticsPage({ onBack }: { onBack: () => void }) {
-  const analyticsService = new AnalyticsService();
   const [selectedPeriod, setSelectedPeriod] = useState("7d");
   const [selectedMetric, setSelectedMetric] = useState("qoe");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [animatedValues] = useState(() =>
     Array.from({ length: 7 }, () => new Animated.Value(0))
   );
-
-  // Backend data state
-  const [data, setData] = useState<AnalyticsData[]>([]);
-  const [summary, setSummary] = useState<AnalyticsSummary>({
-    average: 0,
-    max: 0,
-    min: 0,
-    trend: 0,
-    totalDataPoints: 0,
-  });
-  const [summaryStats, setSummaryStats] = useState<SummaryResponse | null>(
-    null
-  );
+  const [currentData, setCurrentData] = useState({});
 
   const periods = [
     { value: "24h", label: "24H" },
@@ -61,44 +44,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     { value: "signal", label: "RF Quality", icon: Signal, color: "#34d399" },
     { value: "latency", label: "Latency", icon: Clock, color: "#f59e0b" },
   ];
-
-  // Fetch analytics data
-  const fetchAnalytics = async (showLoading: boolean = true) => {
-    try {
-      if (showLoading) setIsLoading(true);
-      setError(null);
-
-      const response = await analyticsService.getAnalytics(
-        selectedPeriod,
-        selectedMetric
-      );
-
-      if (response.success) {
-        setData(response.data);
-        setSummary(response.summary);
-        animateBars();
-      } else {
-        throw new Error(response.error || "Failed to fetch analytics");
-      }
-    } catch (err) {
-      console.error("Analytics fetch error:", err);
-      setError(err.message || "Failed to load analytics data");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch summary stats
-  const fetchSummary = async () => {
-    try {
-      const response = await analyticsService.getSummary();
-      if (response.success) {
-        setSummaryStats(response);
-      }
-    } catch (err) {
-      console.error("Summary fetch error:", err);
-    }
-  };
 
   // Dynamic data generation based on period and metric
   const generateData = (period: string, metric: string) => {
@@ -164,33 +109,26 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   // Refresh data simulation
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    try {
-      await fetchAnalytics(false);
-      await fetchSummary();
-    } finally {
-      setIsRefreshing(false);
-    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const newData = generateData(selectedPeriod, selectedMetric);
+    setData(newData);
+    animateBars();
+    setIsRefreshing(false);
   };
 
-  // Load data on component mount and when period/metric changes
+  // Update data when period or metric changes
   useEffect(() => {
-    fetchAnalytics();
+    const newData = generateData(selectedPeriod, selectedMetric);
+    setData(newData);
+    animateBars();
   }, [selectedPeriod, selectedMetric]);
 
-  // Load summary stats on component mount
-  useEffect(() => {
-    fetchSummary();
-  }, []);
-
   const getMaxValue = (data: any[], key: string) => {
-    if (data.length === 0) return 1;
-    return Math.max(
-      ...data.map((item) => item[key as keyof AnalyticsData] as number)
-    );
+    return Math.max(...data.map((item) => item[key]));
   };
 
   const getBarHeight = (value: number, maxValue: number) => {
-    return maxValue > 0 ? (value / maxValue) * 100 : 0;
+    return (value / maxValue) * 100;
   };
 
   const calculateAverage = (data: any[], key: string) => {
