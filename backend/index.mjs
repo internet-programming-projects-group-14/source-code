@@ -1,10 +1,26 @@
-
+// backend/index.mjs
+import "dotenv/config"; // This loads variables from .env into process.env
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import analyticsRouter from "./routes/analytics.mjs";
 import { generateUserId, generateSessionId } from "./lib/helper.mjs";
 import admin from "./firebase.mjs";
+
+// Firebase configuration from environment variables
+const serviceAccount = {
+  type: "service_account",
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
+  universe_domain: "googleapis.com",
+};
 
 // Initialize Firestore
 const db = admin.firestore();
@@ -29,6 +45,34 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/", limiter);
+
+async function updateAnalytics(feedbackData) {
+  try {
+    const analyticsRef = db.collection("analytics").doc("networkFeedback");
+
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(analyticsRef);
+
+      if (doc.exists) {
+        const data = doc.data();
+        transaction.update(analyticsRef, {
+          totalSubmissions: (data.totalSubmissions || 0) + 1,
+          lastUpdated: admin.firestore.Timestamp.now(),
+          [`ratingCount.${feedbackData.rating}`]:
+            (data.ratingCount?.[feedbackData.rating] || 0) + 1,
+        });
+      } else {
+        transaction.set(analyticsRef, {
+          totalSubmissions: 1,
+          lastUpdated: admin.firestore.Timestamp.now(),
+          ratingCount: { [feedbackData.rating]: 1 },
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error updating analytics:", error);
+  }
+}
 
 // Validation middleware
 const validateFeedback = (req, res, next) => {
@@ -57,9 +101,9 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
   try {
     const { feedback, technicalData, deviceInfo } = req.body;
 
-    const userId = feedback.userId || generateUserId(); // or pull from auth
+    const userId = feedback.userId || generateUserId();
     const sessionId = generateSessionId();
-    const feedbackId = generateSubmissionId(); // reuse your function
+    const feedbackId = generateSubmissionId();
     const timestamp = admin.firestore.Timestamp.now();
 
     // Store user if not exists
@@ -116,6 +160,9 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
       });
     }
 
+    // Update analytics
+    await updateAnalytics(feedback);
+
     res.status(201).json({
       success: true,
       feedbackId,
@@ -135,7 +182,7 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
 //Moute route module
 app.use("/analytics", analyticsRouter);
 
-//Ping Google
+// Ping Google
 app.get("/ping-google", async (req, res) => {
   try {
     const response = await fetch("https://www.google.com", { method: "HEAD" });
@@ -155,7 +202,6 @@ app.get("/api/health", (req, res) => {
 });
 
 // 404 handler
-
 app.use((req, res) => {
   res.status(404).json({
     success: false,
