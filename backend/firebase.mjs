@@ -1,6 +1,7 @@
 // firebase.js or firebase.mjs
 import admin from "firebase-admin";
-import serviceAccount from "./private-key-firebase.json" assert { type: "json" };
+import { serviceAccount } from "./index.mjs";
+
 
 if (!admin.apps.length) {
   admin.initializeApp({
