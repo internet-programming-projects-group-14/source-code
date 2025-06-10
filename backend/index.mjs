@@ -22,6 +22,12 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
 });
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "Welcome to our QoE backend",
+  });
+});
+
 app.use("/api/", limiter);
 
 // Validation middleware
