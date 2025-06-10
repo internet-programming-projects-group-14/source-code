@@ -1,4 +1,4 @@
-// backend/index.mjs or if using "type": "module" in package.json
+
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
