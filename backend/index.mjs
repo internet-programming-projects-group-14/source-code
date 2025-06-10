@@ -1,29 +1,26 @@
 // backend/index.mjs
-import 'dotenv/config'; // This loads variables from .env into process.env
+import "dotenv/config"; // This loads variables from .env into process.env
 import express from "express";
-import admin from "firebase-admin";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import analyticsRouter from "./routes/analytics.mjs";
 import { generateUserId, generateSessionId } from "./lib/helper.mjs";
+import admin from "./firebase.mjs";
 
 // Firebase configuration from environment variables
 const serviceAccount = {
   type: "service_account",
   project_id: process.env.FIREBASE_PROJECT_ID,
   private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
   client_email: process.env.FIREBASE_CLIENT_EMAIL,
   client_id: process.env.FIREBASE_CLIENT_ID,
   auth_uri: "https://accounts.google.com/o/oauth2/auth",
   token_uri: "https://oauth2.googleapis.com/token",
   auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
   client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
-  universe_domain: "googleapis.com"
+  universe_domain: "googleapis.com",
 };
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
 
 // Initialize Firestore
 const db = admin.firestore();
@@ -41,23 +38,13 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
 });
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "Welcome to our QoE backend",
+  });
+});
+
 app.use("/api/", limiter);
-
-// Helper functions (moved up to avoid hoisting issues)
-function getRatingDescription(rating) {
-  const descriptions = {
-    1: "Poor Experience",
-    2: "Fair Experience", 
-    3: "Average Experience",
-    4: "Good Experience",
-    5: "Excellent Experience",
-  };
-  return descriptions[rating] || "Unknown";
-}
-
-function generateSubmissionId() {
-  return "fb_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
-}
 
 async function updateAnalytics(feedbackData) {
   try {
@@ -192,66 +179,8 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
   }
 });
 
-// Get feedback analytics (optional endpoint for dashboard)
-app.get("/api/network-feedback/analytics", async (req, res) => {
-  try {
-    const { startDate, endDate, location } = req.query;
-
-    let query = db.collection("feedback"); // Fixed collection name
-
-    // Apply filters
-    if (startDate) {
-      query = query.where("timestamp", ">=", admin.firestore.Timestamp.fromDate(new Date(startDate)));
-    }
-    if (endDate) {
-      query = query.where("timestamp", "<=", admin.firestore.Timestamp.fromDate(new Date(endDate)));
-    }
-
-    const snapshot = await query.limit(1000).get();
-
-    const analytics = {
-      totalSubmissions: snapshot.size,
-      averageRating: 0,
-      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-      commonIssues: {},
-      locationStats: {},
-      networkTypeStats: {},
-    };
-
-    let totalRating = 0;
-
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-
-      // Rating statistics
-      totalRating += data.rating;
-      analytics.ratingDistribution[data.rating]++;
-
-      // Issue frequency
-      if (data.issue_type && Array.isArray(data.issue_type)) {
-        data.issue_type.forEach((issue) => {
-          analytics.commonIssues[issue] =
-            (analytics.commonIssues[issue] || 0) + 1;
-        });
-      }
-    });
-
-    analytics.averageRating =
-      snapshot.size > 0 ? (totalRating / snapshot.size).toFixed(2) : 0;
-
-    res.json({
-      success: true,
-      analytics,
-      generatedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("Error fetching analytics:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch analytics",
-    });
-  }
-});
+//Moute route module
+app.use("/analytics", analyticsRouter);
 
 // Ping Google
 app.get("/ping-google", async (req, res) => {

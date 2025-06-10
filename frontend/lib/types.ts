@@ -1,4 +1,6 @@
+// networkMetrics
 export type NetworkMetrics = {
+
   signalStrength: number | null;
   networkType: string | null;
   carrier: string | null;
@@ -27,3 +29,39 @@ export type NetworkMetrics = {
     // appVersion: string | null;
   };
 };
+
+// Analytics
+export interface AnalyticsData {
+  time: string;
+  value: number;
+  change: number;
+  download: number;
+  upload: number;
+}
+
+export interface AnalyticsSummary {
+  average: number;
+  max: number;
+  min: number;
+  trend: number;
+  totalDataPoints: number;
+}
+
+export interface AnalyticsResponse {
+  success: boolean;
+  period: string;
+  metric: string;
+  data: AnalyticsData[];
+  summary: AnalyticsSummary;
+  generatedAt: string;
+  error?: string;
+}
+
+export interface SummaryResponse {
+  success: boolean;
+  meanQoE: string;
+  qoeDelta: string;
+  avgThroughput: string;
+  totalDataPoints: number;
+  weekOverWeek: string;
+}

@@ -1,17 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { RelativePathString, useRouter } from "expo-router";
-<<<<<<< HEAD
 import React, { useEffect, useState } from "react";
-=======
-import React, { useState } from "react";
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
 import {
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-<<<<<<< HEAD
   NativeModules,
   Platform,
   ActivityIndicator,
@@ -22,21 +17,17 @@ import NetInfo from "@react-native-community/netinfo";
 import * as Device from "expo-device";
 import * as Location from "expo-location";
 import { requestAndroidPermissions } from "@/lib/permissions";
-import { NetworkMetrics } from "@/types";
+import { NetworkMetrics } from "@/lib/types";
 
 const { SignalModule } = NativeModules;
-=======
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import FeedbackPage from "../../components/FeedbackForm";
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
 
 export default function NetworkQoEApp() {
   const router = useRouter();
   const [currentView, setCurrentView] = useState("main");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
-<<<<<<< HEAD
-  const [networkMetrics, setNetworkMetrics] = useState<NetworkMetrics | null>(null);
+  const [networkMetrics, setNetworkMetrics] = useState<NetworkMetrics | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +35,7 @@ export default function NetworkQoEApp() {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const hasPermissions = await requestAndroidPermissions();
       console.log(hasPermissions);
       if (!hasPermissions) {
@@ -82,7 +73,7 @@ export default function NetworkQoEApp() {
       // Latency
       const start = Date.now();
       try {
-        await fetch("http://localhost:3000/ping-google"); // replace with real backend URL
+        await fetch("https://qoe-backend-ov95.onrender.com/ping-google"); // replace with real backend URL
       } catch (err) {
         console.warn("Ping failed:", err);
       }
@@ -91,7 +82,7 @@ export default function NetworkQoEApp() {
       const finalMetrics: NetworkMetrics = {
         signalStrength: signalData.signalStrength || null,
         networkType: signalData.networkType || netInfo.type,
-        carrier: signalData.carrier || null,
+        carrier: netInfo.details?.carrier || null,
         frequency: signalData.frequency || null,
         bandwidth: signalData.bandwidth || null,
         cellId: signalData.cellId || null,
@@ -116,7 +107,9 @@ export default function NetworkQoEApp() {
       console.log(finalMetrics);
     } catch (err) {
       console.error("Error collecting metrics:", err);
-      setError(err instanceof Error ? err.message : "Failed to collect network metrics");
+      setError(
+        err instanceof Error ? err.message : "Failed to collect network metrics"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -133,24 +126,6 @@ export default function NetworkQoEApp() {
 
   const getSignalQuality = (dbm: number | null) => {
     if (dbm === null) return { text: "Unknown", color: "#6b7280", bars: 0 };
-=======
-
-  const networkMetrics = {
-    signalStrength: -65,
-    dataSpeed: 45.2,
-    uploadSpeed: 12.8,
-    latency: 23,
-    networkType: "LTE",
-    carrier: "Orange Cameroon",
-    frequency: "3.7 GHz",
-    bandwidth: "100 MHz",
-    location: "Dirty South",
-    cellId: "0x1A2B3C",
-    pci: 156,
-  };
-
-  const getSignalQuality = (dbm: number) => {
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
     if (dbm >= -50) return { text: "Excellent", color: "#34d399", bars: 5 };
     if (dbm >= -60) return { text: "Very Good", color: "#6ee7b7", bars: 4 };
     if (dbm >= -70) return { text: "Good", color: "#facc15", bars: 3 };
@@ -158,11 +133,9 @@ export default function NetworkQoEApp() {
     return { text: "Poor", color: "#f87171", bars: 1 };
   };
 
-<<<<<<< HEAD
-  const signalQuality = getSignalQuality(networkMetrics?.signalStrength || null);
-=======
-  const signalQuality = getSignalQuality(networkMetrics.signalStrength);
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
+  const signalQuality = getSignalQuality(
+    networkMetrics?.signalStrength || null
+  );
 
   const handleEmojiRating = (rating: number) => {
     setSelectedRating(rating);
@@ -181,10 +154,7 @@ export default function NetworkQoEApp() {
         selectedRating={selectedRating}
         onBack={handleBackToMain}
         showRatingSelection={false} // Show feedback form, not rating selection
-<<<<<<< HEAD
         networkMetrics={networkMetrics}
-=======
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
       />
     );
   }
@@ -201,7 +171,6 @@ export default function NetworkQoEApp() {
     );
   }
 
-<<<<<<< HEAD
   // Loading State Component
   const LoadingCard = ({ title }: { title: string }) => (
     <View style={styles.card}>
@@ -211,8 +180,8 @@ export default function NetworkQoEApp() {
       </View>
       <View style={styles.loadingContent}>
         <View style={styles.skeletonLine} />
-        <View style={[styles.skeletonLine, { width: '70%' }]} />
-        <View style={[styles.skeletonLine, { width: '80%' }]} />
+        <View style={[styles.skeletonLine, { width: "70%" }]} />
+        <View style={[styles.skeletonLine, { width: "80%" }]} />
       </View>
     </View>
   );
@@ -232,8 +201,6 @@ export default function NetworkQoEApp() {
     </View>
   );
 
-=======
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
   return (
     <SafeAreaView style={[styles.container]}>
       {/* Header */}
@@ -249,8 +216,7 @@ export default function NetworkQoEApp() {
             </Text>
           </View>
         </View>
-<<<<<<< HEAD
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => setCurrentView("settings")}
           disabled={isLoading}
           style={{ opacity: isLoading ? 0.5 : 1 }}
@@ -270,18 +236,22 @@ export default function NetworkQoEApp() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Network Analysis</Text>
             <Text style={styles.statusBadge}>
-              {networkMetrics.isConnected ? '🟢 Active' : '🔴 Disconnected'}
+              {!isLoading ? "🟢 Active" : "🔴 Disconnected"}
             </Text>
 
             <View style={styles.metricBlock}>
               <View style={styles.metric}>
                 <Feather name="radio" size={16} color="#93c5fd" />
                 <Text style={styles.metricLabel}> Signal Strength</Text>
-                <Text style={{ color: signalQuality.color, fontWeight: "bold" }}>
+                <Text
+                  style={{ color: signalQuality.color, fontWeight: "bold" }}
+                >
                   {signalQuality.text}
                 </Text>
                 <Text style={styles.metricValue}>
-                  {networkMetrics.signalStrength ? `${networkMetrics.signalStrength} dBm` : 'N/A'}
+                  {networkMetrics.signalStrength
+                    ? `${networkMetrics.signalStrength} dBm`
+                    : "N/A"}
                 </Text>
               </View>
 
@@ -289,10 +259,15 @@ export default function NetworkQoEApp() {
                 <Feather name="zap" size={16} color="#93c5fd" />
                 <Text style={styles.metricLabel}> Throughput</Text>
                 <Text style={styles.metricValue}>
-                  {networkMetrics.dataSpeed ? `${networkMetrics.dataSpeed} Mbps` : 'N/A'}
+                  {networkMetrics.dataSpeed
+                    ? `${networkMetrics.dataSpeed} Mbps`
+                    : "N/A"}
                 </Text>
                 <Text style={styles.metricValue}>
-                  ↑ {networkMetrics.uploadSpeed ? `${networkMetrics.uploadSpeed} Mbps` : 'N/A'}
+                  ↑{" "}
+                  {networkMetrics.uploadSpeed
+                    ? `${networkMetrics.uploadSpeed} Mbps`
+                    : "N/A"}
                 </Text>
               </View>
             </View>
@@ -300,24 +275,27 @@ export default function NetworkQoEApp() {
             <View style={styles.detailsBlock}>
               <View style={styles.detailsColumn}>
                 <Text style={styles.detailItem}>
-                  Type: {networkMetrics.networkType || 'Unknown'}
+                  Type: {networkMetrics.networkType || "Unknown"}
                 </Text>
                 <Text style={styles.detailItem}>
-                  Freq: {networkMetrics.frequency || 'N/A'}
+                  Freq: {networkMetrics.frequency || "N/A"}
                 </Text>
                 <Text style={styles.detailItem}>
-                  BW: {networkMetrics.bandwidth || 'N/A'}
+                  BW: {networkMetrics.bandwidth || "N/A"}
                 </Text>
               </View>
               <View style={styles.detailsColumn}>
                 <Text style={styles.detailItem}>
-                  Latency: {networkMetrics.latency ? `${networkMetrics.latency} ms` : 'N/A'}
+                  Latency:{" "}
+                  {networkMetrics.latency
+                    ? `${networkMetrics.latency} ms`
+                    : "N/A"}
                 </Text>
                 <Text style={styles.detailItem}>
-                  Cell ID: {networkMetrics.cellId || 'N/A'}
+                  Cell ID: {networkMetrics.cellId || "N/A"}
                 </Text>
                 <Text style={styles.detailItem}>
-                  PCI: {networkMetrics.pci || 'N/A'}
+                  PCI: {networkMetrics.pci || "N/A"}
                 </Text>
               </View>
             </View>
@@ -329,14 +307,18 @@ export default function NetworkQoEApp() {
           <LoadingCard title="Location Info" />
         ) : networkMetrics ? (
           <View style={styles.card}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
               <Feather name="map-pin" size={18} color="#34d399" />
               <View>
                 <Text style={styles.cardTitle}>
-                  {networkMetrics.location ? 'Location Detected' : 'Location Unknown'}
+                  {networkMetrics.location
+                    ? "Location Detected"
+                    : "Location Unknown"}
                 </Text>
                 <Text style={styles.detailItem}>
-                  Carrier: {networkMetrics.carrier || 'Unknown'} • Contributing to area analytics
+                  Carrier: {networkMetrics.carrier || "Unknown"}
                 </Text>
               </View>
             </View>
@@ -362,10 +344,7 @@ export default function NetworkQoEApp() {
                 <TouchableOpacity
                   key={item.value}
                   onPress={() => handleEmojiRating(item.value)}
-                  style={[
-                    styles.emojiButton,
-                    { opacity: isLoading ? 0.5 : 1 }
-                  ]}
+                  style={[styles.emojiButton, { opacity: isLoading ? 0.5 : 1 }]}
                   disabled={isLoading}
                 >
                   <Text style={styles.emoji}>{item.emoji}</Text>
@@ -375,106 +354,6 @@ export default function NetworkQoEApp() {
             </View>
           </View>
         )}
-=======
-        <TouchableOpacity onPress={() => setCurrentView("settings")}>
-          <Feather name="settings" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-      <ScrollView>
-        {/* Card: Network Analysis */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Network Analysis</Text>
-          <Text style={styles.statusBadge}>🟢 Active</Text>
-
-          <View style={styles.metricBlock}>
-            <View style={styles.metric}>
-              <Feather name="radio" size={16} color="#93c5fd" />
-              <Text style={styles.metricLabel}> Signal Strength</Text>
-              <Text style={{ color: signalQuality.color, fontWeight: "bold" }}>
-                {signalQuality.text}
-              </Text>
-              <Text style={styles.metricValue}>
-                {networkMetrics.signalStrength} dBm
-              </Text>
-            </View>
-
-            <View style={styles.metric}>
-              <Feather name="zap" size={16} color="#93c5fd" />
-              <Text style={styles.metricLabel}> Throughput</Text>
-              <Text style={styles.metricValue}>
-                {networkMetrics.dataSpeed} Mbps
-              </Text>
-              <Text style={styles.metricValue}>
-                ↑ {networkMetrics.uploadSpeed} Mbps
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.detailsBlock}>
-            <View style={styles.detailsColumn}>
-              <Text style={styles.detailItem}>
-                Type: {networkMetrics.networkType}
-              </Text>
-              <Text style={styles.detailItem}>
-                Freq: {networkMetrics.frequency}
-              </Text>
-              <Text style={styles.detailItem}>
-                BW: {networkMetrics.bandwidth}
-              </Text>
-            </View>
-            <View style={styles.detailsColumn}>
-              <Text style={styles.detailItem}>
-                Latency: {networkMetrics.latency} ms
-              </Text>
-              <Text style={styles.detailItem}>
-                Cell ID: {networkMetrics.cellId}
-              </Text>
-              <Text style={styles.detailItem}>PCI: {networkMetrics.pci}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Card: Location Info */}
-        <View style={styles.card}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Feather name="map-pin" size={18} color="#34d399" />
-            <View>
-              <Text style={styles.cardTitle}>{networkMetrics.location}</Text>
-              <Text style={styles.detailItem}>
-                Carrier: {networkMetrics.carrier} • Contributing to area
-                analytics
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* QoE Feedback */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Rate Your Network Experience</Text>
-          <Text style={styles.headerSubtitle}>
-            Help improve network quality
-          </Text>
-
-          <View style={styles.emojiRow}>
-            {[
-              { emoji: "😞", label: "Poor", value: 1 },
-              { emoji: "😐", label: "Fair", value: 2 },
-              { emoji: "🙂", label: "Good", value: 3 },
-              { emoji: "😊", label: "Great", value: 4 },
-              { emoji: "🤩", label: "Excellent", value: 5 },
-            ].map((item) => (
-              <TouchableOpacity
-                key={item.value}
-                onPress={() => handleEmojiRating(item.value)}
-                style={styles.emojiButton}
-              >
-                <Text style={styles.emoji}>{item.emoji}</Text>
-                <Text style={styles.emojiLabel}>{item.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
 
         {/* Navigation Buttons */}
         <View style={styles.actionList}>
@@ -498,15 +377,8 @@ export default function NetworkQoEApp() {
             <TouchableOpacity
               key={item.view}
               onPress={() => router.push(`/${item.view}` as RelativePathString)}
-<<<<<<< HEAD
-              style={[
-                styles.actionButton,
-                { opacity: isLoading ? 0.5 : 1 }
-              ]}
+              style={[styles.actionButton, { opacity: isLoading ? 0.5 : 1 }]}
               disabled={isLoading}
-=======
-              style={styles.actionButton}
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
             >
               <View style={styles.actionButtonInner}>
                 <Feather name={item.icon as any} size={18} color="#fff" />
@@ -524,7 +396,6 @@ export default function NetworkQoEApp() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0f172a" },
   header: {
-<<<<<<< HEAD
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -534,17 +405,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.3)",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.1)",
-=======
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
   },
   headerContent: { flexDirection: "row", alignItems: "center", gap: 12 },
   signalIcon: {
@@ -558,11 +418,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#fff", fontWeight: "bold", fontSize: 16 },
   headerSubtitle: { color: "#93c5fd", fontSize: 12 },
   card: {
-<<<<<<< HEAD
     backgroundColor: "rgba(255, 255, 255, 0.05)",
-=======
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
     margin: 10,
     padding: 16,
     borderRadius: 12,
@@ -617,8 +473,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   back: { color: "#60a5fa", marginTop: 8 },
-<<<<<<< HEAD
-  
+
   // Loading States
   loadingHeader: {
     flexDirection: "row",
@@ -635,7 +490,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     width: "100%",
   },
-  
+
   // Error States
   errorContent: {
     alignItems: "center",
@@ -668,6 +523,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-=======
->>>>>>> ef4e1333a5e331bf72eb9bfd203764fab9ca5f04
 });
