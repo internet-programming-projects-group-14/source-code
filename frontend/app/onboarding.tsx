@@ -271,7 +271,7 @@ const OnboardingScreen = () => {
             styles.permissionButtonOutline,
             permissions.notifications && styles.permissionButtonEnabledBlue,
           ]}
-          onPress={requestNotificationPermission}
+          onPress={requestPhoneStatePermission}
         >
           {permissions.notifications && <CheckCircle size={16} color="white" />}
           <Text style={styles.permissionButtonText}>
