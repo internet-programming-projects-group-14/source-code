@@ -28,6 +28,7 @@ import {
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
+import { getOrCreateUserId } from "@/lib/identityToken";
 
 const { height } = Dimensions.get("window");
 
@@ -53,6 +54,7 @@ const OnboardingScreen = () => {
       setPermissions((prev) => ({ ...prev, location: true }));
     } else {
       setPermissions((prev) => ({ ...prev, location: false }));
+
       Alert.alert(
         "Permission Denied",
         "Location permission is required for accurate network analysis."
@@ -65,17 +67,25 @@ const OnboardingScreen = () => {
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE
     );
-    console.log(granted);
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
+    if (granted === "granted") {
+      setPermissions((prev) => ({ ...prev, phoneState: true }));
+    } else {
+      setPermissions((prev) => ({ ...prev, phoneState: false }));
+
+      Alert.alert(
+        "Permission Denied",
+        "Phone State permission is required for accurate network analysis."
+      );
+    }
   };
 
   const requestNotificationPermission = async () => {
     const settings = await Notifications.requestPermissionsAsync();
-    console.log(settings);
-    return (
-      settings.granted ||
-      settings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
-    );
+    if (settings.granted === true) {
+      setPermissions((prev) => ({ ...prev, notifications: true }));
+    } else {
+      setPermissions((prev) => ({ ...prev, notifications: false }));
+    }
   };
 
   const WelcomeContent = () => (
@@ -212,6 +222,40 @@ const OnboardingScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.permissionItem}>
+        <View style={styles.permissionHeader}>
+          <View style={[styles.featureIcon, { backgroundColor: "#3B82F620" }]}>
+            <Phone size={16} color="#93C5FD" />
+          </View>
+          <View style={styles.permissionInfo}>
+            <View style={styles.permissionTitleRow}>
+              <Text style={styles.featureTitle}>Phone State</Text>
+              <View style={styles.requiredBadge}>
+                <Text style={styles.requiredText}>Required</Text>
+              </View>
+            </View>
+            <Text style={styles.permissionDescription}>
+              Needed to access network type and signal strength for better
+              analysis.
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.permissionButton,
+            styles.permissionButtonOutline,
+            permissions.phoneState && styles.permissionButtonEnabledPurple,
+          ]}
+          onPress={requestPhoneStatePermission}
+        >
+          {permissions.phoneState && <CheckCircle size={16} color="white" />}
+          <Text style={styles.permissionButtonText}>
+            {permissions.phoneState
+              ? "Phone State Enabled"
+              : "Permission Required "}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.permissionItem}>
         <View style={styles.permissionHeader}>
@@ -244,40 +288,6 @@ const OnboardingScreen = () => {
             {permissions.notifications
               ? "Notifications Enabled"
               : "Enable Notifications"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.permissionItem}>
-        <View style={styles.permissionHeader}>
-          <View style={[styles.featureIcon, { backgroundColor: "#3B82F620" }]}>
-            <Phone size={16} color="#93C5FD" />
-          </View>
-          <View style={styles.permissionInfo}>
-            <View style={styles.permissionTitleRow}>
-              <Text style={styles.featureTitle}>Phone State</Text>
-              <View style={styles.requiredBadge}>
-                <Text style={styles.requiredText}>Required</Text>
-              </View>
-            </View>
-            <Text style={styles.permissionDescription}>
-              Needed to access network type and signal strength for better
-              analysis.
-            </Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.permissionButton,
-            styles.permissionButtonOutline,
-            permissions.notifications && styles.permissionButtonEnabledBlue,
-          ]}
-          onPress={requestPhoneStatePermission}
-        >
-          {permissions.notifications && <CheckCircle size={16} color="white" />}
-          <Text style={styles.permissionButtonText}>
-            {permissions.notifications
-              ? "Phone state is needed to access signal strength and connection type."
-              : "Permission Required "}
           </Text>
         </TouchableOpacity>
       </View>
@@ -342,7 +352,8 @@ const OnboardingScreen = () => {
     {
       id: "permissions",
       title: "Enable Core Features",
-      subtitle: "Grant permissions for optimal experience",
+      subtitle:
+        "Grant permissions for optimal experience. Permissions can only be granted here. To undo or change them later, use your device's settings page.",
       content: <PermissionsContent />,
     },
     {
@@ -357,8 +368,10 @@ const OnboardingScreen = () => {
   const isLastStep = currentStep === steps.length - 1;
   const canProceed = currentStep !== 3 || permissions.location;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (isLastStep) {
+      const userId = await getOrCreateUserId();
+      console.log("User ID is:", userId);
       router.replace("/");
     } else {
       setCurrentStep((prev) => prev + 1);
@@ -461,8 +474,6 @@ const OnboardingScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 20,
-    paddingBottom: 48,
     flex: 1,
     backgroundColor: "#1F2937",
   },
@@ -540,6 +551,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   stepSubtitle: {
+    lineHeight: 20,
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
@@ -742,6 +754,10 @@ const styles = StyleSheet.create({
   permissionButtonEnabledBlue: {
     backgroundColor: "#2563EB",
     borderColor: "#3B82F6",
+  },
+  permissionButtonEnabledPurple: {
+    backgroundColor: "#8B5CF6", // Violet-500
+    borderColor: "#7C3AED", // Violet-600
   },
   permissionButtonText: {
     fontSize: 13,

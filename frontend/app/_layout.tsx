@@ -45,29 +45,25 @@ function LoadingScreen() {
   );
 }
 
-// Custom hook for managing launch state
-function useLaunchState() {
+const USER_ID_KEY = "user_unique_id";
+
+export function useLaunchState() {
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const checkFirstLaunch = async () => {
     try {
       setError(null);
-      const hasLaunched = await SecureStore.getItemAsync("hasLaunched");
-      console.log("Launch check result:", hasLaunched);
+      const userId = await SecureStore.getItemAsync(USER_ID_KEY);
+      console.log("User ID check result:", userId);
 
-      if (!hasLaunched) {
-        await SecureStore.setItemAsync("hasLaunched", "true");
-        setIsFirstLaunch(true);
-      } else {
-        setIsFirstLaunch(false);
-      }
+      // If userId does not exist, treat as first launch
+      setIsFirstLaunch(!userId);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      console.error("Failed to check launch status:", err);
-      setError(errorMessage);
-      // Fallback to assuming not first launch
-      setIsFirstLaunch(false);
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error("Error checking launch state:", err);
+      setError(message);
+      setIsFirstLaunch(false); // fallback: assume it's not first launch
     }
   };
 
