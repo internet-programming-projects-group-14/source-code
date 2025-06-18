@@ -231,11 +231,11 @@ const OnboardingScreen = () => {
   const ReadyContent = () => (
     <View style={styles.readyContainer}>
       <View style={styles.iconContainer}>
-        <CheckCircle size={64} color="#6EE7B7" />
+        <CheckCircle size={48} color="#6EE7B7" />
       </View>
 
       <View style={styles.textContainer}>
-        <Text style={styles.welcomeTitle}>Ready to Begin</Text>
+        <Text style={styles.welcomeTitle}>Ready to Begin?</Text>
         <Text style={styles.welcomeSubtitle}>
           You&apos;re now ready to start monitoring your network quality and
           contributing to the community insights.
@@ -244,20 +244,11 @@ const OnboardingScreen = () => {
 
       <View style={styles.readyStatsContainer}>
         <View style={styles.readyStatItem}>
-          <Text style={styles.readyStatTitle}>Real-time Monitoring</Text>
-          <Text style={styles.readyStatValue}>Active</Text>
+          <Text style={styles.infoText}>
+            A randomly generated ID will be stored on your device after this
+            step. You can reset it at any time from the settings.
+          </Text>
         </View>
-        <View style={styles.readyStatItem}>
-          <Text style={styles.readyStatTitle}>Community Data</Text>
-          <Text style={styles.readyStatValue}>Contributing</Text>
-        </View>
-      </View>
-
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
-          A randomly generated ID will be stored on your device after this step.
-          You can reset it at any time from the settings.
-        </Text>
       </View>
     </View>
   );
@@ -496,8 +487,8 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   iconContainer: {
-    width: 128,
-    height: 128,
+    width: 100,
+    height: 100,
     borderRadius: 64,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
@@ -509,14 +500,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   welcomeTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "white",
     textAlign: "center",
     marginBottom: 12,
   },
   welcomeSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
     lineHeight: 24,
@@ -725,7 +716,6 @@ const styles = StyleSheet.create({
   },
   readyStatItem: {
     flex: 1,
-    alignItems: "center",
     padding: 12,
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 8,
@@ -736,14 +726,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     color: "white",
-    marginBottom: 4,
-  },
-  readyStatValue: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.6)",
   },
   infoContainer: {
-    marginTop: 20,
     paddingHorizontal: 16,
   },
   infoText: {
