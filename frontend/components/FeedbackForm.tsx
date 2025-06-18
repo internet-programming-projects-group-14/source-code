@@ -1,4 +1,4 @@
-import { NetworkMetrics } from "@/types";
+import { NetworkMetrics } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
@@ -99,7 +99,7 @@ export default function FeedbackPage({
 
     try {
       const response = await fetch(
-        "http://localhost:3000/api/network-feedback",
+        "https://qoe-backend-ov95.onrender.com/api/network-feedback",
         {
           method: "POST",
           headers: {
@@ -121,7 +121,9 @@ export default function FeedbackPage({
       console.error("Submit error:", error);
       Alert.alert("Error", "Failed to submit feedback.");
     } finally {
-      setIsSubmitting(false);
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 3000);
     }
   };
 
