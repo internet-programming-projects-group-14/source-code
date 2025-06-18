@@ -414,6 +414,8 @@ const OnboardingScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 20,
+    paddingBottom: 48,
     flex: 1,
     backgroundColor: "#1F2937",
   },
