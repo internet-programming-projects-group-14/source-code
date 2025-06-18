@@ -114,17 +114,6 @@ const OnboardingScreen = () => {
         </Text>
       </View>
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>50K+</Text>
-          <Text style={styles.statLabel}>Active Contributors</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: "#60A5FA" }]}>2M+</Text>
-          <Text style={styles.statLabel}>Data Points Daily</Text>
-        </View>
-      </View>
-
       <View style={styles.benefitsList}>
         <View style={styles.benefitItem}>
           <CheckCircle size={20} color="#34D399" />
@@ -153,7 +142,7 @@ const OnboardingScreen = () => {
       <View style={styles.permissionItem}>
         <View style={styles.permissionHeader}>
           <View style={[styles.featureIcon, { backgroundColor: "#10B98120" }]}>
-            <MapPin size={24} color="#6EE7B7" />
+            <MapPin size={16} color="#6EE7B7" />
           </View>
           <View style={styles.permissionInfo}>
             <View style={styles.permissionTitleRow}>
@@ -189,7 +178,7 @@ const OnboardingScreen = () => {
       <View style={styles.permissionItem}>
         <View style={styles.permissionHeader}>
           <View style={[styles.featureIcon, { backgroundColor: "#3B82F620" }]}>
-            <Bell size={24} color="#93C5FD" />
+            <Bell size={16} color="#93C5FD" />
           </View>
           <View style={styles.permissionInfo}>
             <View style={styles.permissionTitleRow}>
@@ -546,8 +535,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   featureIcon: {
-    width: 48,
-    height: 48,
+    width: 32,
+    height: 32,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -634,7 +623,7 @@ const styles = StyleSheet.create({
   permissionHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 16,
+    gap: 8,
   },
   permissionInfo: {
     flex: 1,
@@ -646,6 +635,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   requiredBadge: {
+    flexShrink: 2,
     backgroundColor: "rgba(239, 68, 68, 0.2)",
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -670,7 +660,7 @@ const styles = StyleSheet.create({
     color: "#93C5FD",
   },
   permissionDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: "rgba(255, 255, 255, 0.7)",
     lineHeight: 20,
   },
@@ -696,7 +686,7 @@ const styles = StyleSheet.create({
     borderColor: "#3B82F6",
   },
   permissionButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "white",
     fontWeight: "500",
   },
@@ -720,7 +710,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   privacyDescription: {
-    fontSize: 12,
+    fontSize: 11,
     color: "rgba(255, 255, 255, 0.7)",
     lineHeight: 18,
   },
