@@ -6,8 +6,11 @@ import {
   ScrollView,
   StyleSheet,
   SafeAreaView,
+  Platform,
+  PermissionsAndroid,
   Dimensions,
   StatusBar,
+  Alert,
 } from "react-native";
 import {
   ChevronRight,
@@ -20,13 +23,17 @@ import {
   Bell,
   Shield,
   CheckCircle,
+  Phone,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
 
 const { height } = Dimensions.get("window");
 
 interface Permissions {
   location: boolean;
+  phoneState: boolean;
   notifications: boolean;
 }
 
@@ -35,8 +42,41 @@ const OnboardingScreen = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [permissions, setPermissions] = useState<Permissions>({
     location: false,
+    phoneState: false,
     notifications: false,
   });
+
+  const requestLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status === "granted") {
+      setPermissions((prev) => ({ ...prev, location: true }));
+    } else {
+      setPermissions((prev) => ({ ...prev, location: false }));
+      Alert.alert(
+        "Permission Denied",
+        "Location permission is required for accurate network analysis."
+      );
+    }
+  };
+
+  const requestPhoneStatePermission = async () => {
+    if (Platform.OS !== "android") return true;
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE
+    );
+    console.log(granted);
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  };
+
+  const requestNotificationPermission = async () => {
+    const settings = await Notifications.requestPermissionsAsync();
+    console.log(settings);
+    return (
+      settings.granted ||
+      settings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
+    );
+  };
 
   const WelcomeContent = () => (
     <View style={styles.welcomeContainer}>
@@ -162,9 +202,7 @@ const OnboardingScreen = () => {
             styles.permissionButton,
             permissions.location && styles.permissionButtonEnabled,
           ]}
-          onPress={() =>
-            setPermissions((prev) => ({ ...prev, location: !prev.location }))
-          }
+          onPress={requestLocation}
         >
           {permissions.location && <CheckCircle size={16} color="white" />}
           <Text style={styles.permissionButtonText}>
@@ -199,18 +237,47 @@ const OnboardingScreen = () => {
             styles.permissionButtonOutline,
             permissions.notifications && styles.permissionButtonEnabledBlue,
           ]}
-          onPress={() =>
-            setPermissions((prev) => ({
-              ...prev,
-              notifications: !prev.notifications,
-            }))
-          }
+          onPress={requestNotificationPermission}
         >
           {permissions.notifications && <CheckCircle size={16} color="white" />}
           <Text style={styles.permissionButtonText}>
             {permissions.notifications
               ? "Notifications Enabled"
               : "Enable Notifications"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.permissionItem}>
+        <View style={styles.permissionHeader}>
+          <View style={[styles.featureIcon, { backgroundColor: "#3B82F620" }]}>
+            <Phone size={16} color="#93C5FD" />
+          </View>
+          <View style={styles.permissionInfo}>
+            <View style={styles.permissionTitleRow}>
+              <Text style={styles.featureTitle}>Phone State</Text>
+              <View style={styles.requiredBadge}>
+                <Text style={styles.requiredText}>Required</Text>
+              </View>
+            </View>
+            <Text style={styles.permissionDescription}>
+              Needed to access network type and signal strength for better
+              analysis.
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.permissionButton,
+            styles.permissionButtonOutline,
+            permissions.notifications && styles.permissionButtonEnabledBlue,
+          ]}
+          onPress={requestNotificationPermission}
+        >
+          {permissions.notifications && <CheckCircle size={16} color="white" />}
+          <Text style={styles.permissionButtonText}>
+            {permissions.notifications
+              ? "Phone state is needed to access signal strength and connection type."
+              : "Permission Required "}
           </Text>
         </TouchableOpacity>
       </View>
