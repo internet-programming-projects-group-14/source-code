@@ -21,19 +21,17 @@ import {
   Shield,
   CheckCircle,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 const { height } = Dimensions.get("window");
-
-interface OnboardingScreenProps {
-  onComplete: () => void;
-}
 
 interface Permissions {
   location: boolean;
   notifications: boolean;
 }
 
-const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
+const OnboardingScreen = () => {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [permissions, setPermissions] = useState<Permissions>({
     location: false,
@@ -246,6 +244,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
       <View style={styles.iconContainer}>
         <CheckCircle size={64} color="#6EE7B7" />
       </View>
+
       <View style={styles.textContainer}>
         <Text style={styles.welcomeTitle}>Ready to Begin</Text>
         <Text style={styles.welcomeSubtitle}>
@@ -253,6 +252,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
           contributing to the community insights.
         </Text>
       </View>
+
       <View style={styles.readyStatsContainer}>
         <View style={styles.readyStatItem}>
           <Text style={styles.readyStatTitle}>Real-time Monitoring</Text>
@@ -262,6 +262,13 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
           <Text style={styles.readyStatTitle}>Community Data</Text>
           <Text style={styles.readyStatValue}>Contributing</Text>
         </View>
+      </View>
+
+      <View style={styles.infoContainer}>
+        <Text style={styles.infoText}>
+          A randomly generated ID will be stored on your device after this step.
+          You can reset it at any time from the settings.
+        </Text>
       </View>
     </View>
   );
@@ -305,7 +312,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
 
   const handleNext = () => {
     if (isLastStep) {
-      onComplete();
+      router.replace("/");
     } else {
       setCurrentStep((prev) => prev + 1);
     }
@@ -322,7 +329,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
       <StatusBar barStyle="light-content" backgroundColor="#1F2937" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <SafeAreaView style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             <View style={styles.headerIcon}>
@@ -344,7 +351,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
             ))}
           </View>
         </View>
-      </View>
+      </SafeAreaView>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -743,6 +750,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "rgba(255, 255, 255, 0.6)",
   },
+  infoContainer: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#6B7280", // neutral gray
+    textAlign: "center",
+  },
+
   navigation: {
     flexDirection: "row",
     alignItems: "center",

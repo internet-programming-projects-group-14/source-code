@@ -12,7 +12,10 @@
       "supportsTablet": true
     },
     "android": {
-      "permissions": ["ACCESS_NETWORK_STATE", "READ_PHONE_STATE"],
+      "permissions": [
+        "ACCESS_NETWORK_STATE",
+        "READ_PHONE_STATE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -35,7 +38,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
