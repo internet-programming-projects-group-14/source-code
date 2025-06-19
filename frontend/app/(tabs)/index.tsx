@@ -1,23 +1,23 @@
+import { requestAndroidPermissions } from "@/lib/permissions";
+import { NetworkMetrics } from "@/lib/types";
 import { Feather } from "@expo/vector-icons";
+import NetInfo from "@react-native-community/netinfo";
+import * as Device from "expo-device";
+import * as Location from "expo-location";
 import { RelativePathString, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  NativeModules,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  NativeModules,
-  Platform,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FeedbackPage from "../../components/FeedbackForm";
-import NetInfo from "@react-native-community/netinfo";
-import * as Device from "expo-device";
-import * as Location from "expo-location";
-import { requestAndroidPermissions } from "@/lib/permissions";
-import { NetworkMetrics } from "@/lib/types";
 
 const { SignalModule } = NativeModules;
 
@@ -30,6 +30,8 @@ export default function NetworkQoEApp() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [address, setAddress] =
+    useState<Location.LocationGeocodedAddress | null>(null);
 
   const fetchMetrics = async () => {
     try {
@@ -50,8 +52,11 @@ export default function NetworkQoEApp() {
         locationData = {
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude,
-          accuracy: loc.coords.accuracy,
         };
+
+        const [address] = await Location.reverseGeocodeAsync(locationData);
+        setAddress(address);
+        locationData = { ...locationData, accuracy: loc.coords.accuracy };
       }
 
       // Signal metrics from native module
@@ -313,8 +318,8 @@ export default function NetworkQoEApp() {
               <Feather name="map-pin" size={18} color="#34d399" />
               <View>
                 <Text style={styles.cardTitle}>
-                  {networkMetrics.location
-                    ? "Location Detected"
+                  {networkMetrics.location && address
+                    ? address.name + " " + address.city
                     : "Location Unknown"}
                 </Text>
                 <Text style={styles.detailItem}>
