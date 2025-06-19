@@ -72,7 +72,7 @@ export default function FeedbackPage({
         userId: "user_12345", // Replace with actual user ID
         rating: selectedRating,
         contextInfo: {
-          location: location ? "Captured" : "Unknown",
+          location: location ? location : "Unknown",
           time: new Date().toISOString(),
           situationContext: selectedContext,
         },
@@ -101,9 +101,11 @@ export default function FeedbackPage({
       },
     };
 
+    console.log(requestBody);
+
     try {
       const response = await fetch(
-        "https://qoe-backend-ov95.onrender.com/api/network-feedback",
+        "http://localhost:3000/api/network-feedback",
         {
           method: "POST",
           headers: {
