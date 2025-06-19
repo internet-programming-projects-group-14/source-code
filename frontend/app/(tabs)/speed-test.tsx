@@ -214,8 +214,9 @@ export default function SpeedTestPage() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
+
       <LinearGradient
-        colors={["#111827", "#334155", "#1f2937"]}
+        colors={["#111827", "#374151", "#111827"]}
         style={styles.gradient}
       >
         {/* Header */}
@@ -538,13 +539,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingTop: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   headerContent: {
     flexDirection: "row",

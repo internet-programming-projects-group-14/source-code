@@ -93,7 +93,7 @@ export default function NetworkQoEApp() {
         cellId: signalData.cellId || null,
         pci: signalData.pci || null,
 
-        dataSpeed: null, // Optional: set if you benchmark it manually
+        dataSpeed: null,
         uploadSpeed: null,
         latency,
         isConnected: netInfo.isConnected,
@@ -109,7 +109,6 @@ export default function NetworkQoEApp() {
       };
 
       setNetworkMetrics(finalMetrics);
-      console.log(finalMetrics);
     } catch (err) {
       console.error("Error collecting metrics:", err);
       setError(
@@ -125,7 +124,6 @@ export default function NetworkQoEApp() {
   };
 
   useEffect(() => {
-    console.log("Here are your metrics ma'am");
     fetchMetrics();
   }, []);
 
@@ -158,6 +156,7 @@ export default function NetworkQoEApp() {
       <FeedbackPage
         selectedRating={selectedRating}
         onBack={handleBackToMain}
+        address={address}
         showRatingSelection={false} // Show feedback form, not rating selection
         networkMetrics={networkMetrics}
       />

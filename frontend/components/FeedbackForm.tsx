@@ -1,6 +1,7 @@
 import { NetworkMetrics } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Location from "expo-location";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -18,6 +19,7 @@ import {
 interface FeedbackPageProps {
   onBack: () => void;
   selectedRating: number | null;
+  address: Location.LocationGeocodedAddress | null;
   onEmojiSelect?: (rating: number) => void;
   showRatingSelection?: boolean;
   networkMetrics: NetworkMetrics | null;
@@ -27,6 +29,7 @@ export default function FeedbackPage({
   onBack,
   selectedRating,
   onEmojiSelect,
+  address,
   networkMetrics,
   showRatingSelection = false,
 }: FeedbackPageProps) {
@@ -150,6 +153,12 @@ export default function FeedbackPage({
   };
 
   const issueTypes = [
+    {
+      id: "no-issue",
+      label: "Everything is Fine",
+      icon: "wifi-outline",
+      severity: "no",
+    },
     {
       id: "slow-data",
       label: "Slow Data Speed",
@@ -357,7 +366,9 @@ export default function FeedbackPage({
             <View style={styles.contextInfoRow}>
               <View style={styles.contextInfoItem}>
                 <Text style={styles.contextLabel}>Location</Text>
-                <Text style={styles.contextValue}>Downtown Area</Text>
+                <Text style={styles.contextValue}>
+                  {address ? address.name + " " + address.city : "Loading..."}
+                </Text>
               </View>
               <View style={styles.contextInfoItem}>
                 <Text style={styles.contextLabel}>Time</Text>
@@ -559,7 +570,6 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
     marginBottom: 16,
   },
   cardTitle: {
