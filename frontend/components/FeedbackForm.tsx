@@ -1,3 +1,4 @@
+import { getIssueTypesByRating } from "@/lib/getIssuesByRating";
 import { NetworkMetrics } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -152,50 +153,9 @@ export default function FeedbackPage({
     return ratings[rating - 1] || ratings[0];
   };
 
-  const issueTypes = [
-    {
-      id: "no-issue",
-      label: "Everything is Fine",
-      icon: "wifi-outline",
-      severity: "no",
-    },
-    {
-      id: "slow-data",
-      label: "Slow Data Speed",
-      icon: "wifi-outline",
-      severity: "high",
-    },
-    {
-      id: "call-drops",
-      label: "Call Drops/Quality",
-      icon: "call-outline",
-      severity: "high",
-    },
-    {
-      id: "poor-video",
-      label: "Video Streaming Issues",
-      icon: "videocam-outline",
-      severity: "medium",
-    },
-    {
-      id: "web-loading",
-      label: "Web Page Loading",
-      icon: "globe-outline",
-      severity: "medium",
-    },
-    {
-      id: "app-performance",
-      label: "App Performance",
-      icon: "phone-portrait-outline",
-      severity: "low",
-    },
-    {
-      id: "no-connection",
-      label: "No Connection",
-      icon: "warning-outline",
-      severity: "critical",
-    },
-  ];
+  const issueTypes = selectedRating
+    ? getIssueTypesByRating(selectedRating)
+    : getIssueTypesByRating(-1);
 
   const contextOptions = [
     { id: "indoor", label: "Indoor" },
