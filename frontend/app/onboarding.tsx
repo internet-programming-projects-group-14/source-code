@@ -1,34 +1,35 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  SafeAreaView,
-  Platform,
-  PermissionsAndroid,
-  Dimensions,
-  StatusBar,
-  Alert,
-} from "react-native";
-import {
-  ChevronRight,
-  ChevronLeft,
-  Signal,
-  BarChart3,
-  Users,
-  Zap,
-  MapPin,
-  Bell,
-  Shield,
-  CheckCircle,
-  Phone,
-} from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { getOrCreateUserId } from "@/lib/identityToken";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
-import { getOrCreateUserId } from "@/lib/identityToken";
+import { useRouter } from "expo-router";
+import {
+  BarChart3,
+  Bell,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Phone,
+  Shield,
+  Signal,
+  Users,
+  Zap,
+} from "lucide-react-native";
+import React, { useState } from "react";
+import {
+  Alert,
+  Dimensions,
+  PermissionsAndroid,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import "react-native-get-random-values";
 
 const { height } = Dimensions.get("window");
 
@@ -370,6 +371,7 @@ const OnboardingScreen = () => {
 
   const handleNext = async () => {
     if (isLastStep) {
+      console.log("Last step");
       const userId = await getOrCreateUserId();
       console.log("User ID is:", userId);
       router.replace("/");
