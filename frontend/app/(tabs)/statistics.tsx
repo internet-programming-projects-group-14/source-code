@@ -77,6 +77,8 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     }
   };
 
+  
+
   useEffect(() => {
     switch (selectedMetric) {
       case "qoe":
