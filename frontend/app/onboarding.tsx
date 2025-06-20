@@ -371,7 +371,6 @@ const OnboardingScreen = () => {
 
   const handleNext = async () => {
     if (isLastStep) {
-      console.log("Last step");
       const userId = await getOrCreateUserId();
       console.log("User ID is:", userId);
       router.replace("/");

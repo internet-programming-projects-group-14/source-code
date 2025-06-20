@@ -1,4 +1,5 @@
 import { getIssueTypesByRating } from "@/lib/getIssuesByRating";
+import { getOrCreateUserId } from "@/lib/identityToken";
 import { NetworkMetrics } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -67,13 +68,14 @@ export default function FeedbackPage({
       device,
     } = networkMetrics;
 
+    // const userId = await getOrCreateUserId();
+    const userId = "user-2456";
     const requestBody = {
+      userId: userId, // Replace with actual user ID
       feedback: {
-        userId: "user_12345", // Replace with actual user ID
         rating: selectedRating,
         contextInfo: {
           location: location ? location : "Unknown",
-          time: new Date().toISOString(),
           situationContext: selectedContext,
         },
         specificIssues: selectedIssues.map((type) => ({ type })),
