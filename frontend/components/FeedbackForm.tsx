@@ -17,10 +17,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Constants from "expo-constants";
+
+if (!Constants.expoConfig?.extra?.API_URL) {
+  throw new Error("API_URL is not defined in app.config.js!");
+}
+const apiUrl = Constants.expoConfig.extra.API_URL;
 
 interface FeedbackPageProps {
   onBack: () => void;
   selectedRating: number | null;
+  setCurrentView: React.Dispatch<React.SetStateAction<string>>;
   address: Location.LocationGeocodedAddress | null;
   onEmojiSelect?: (rating: number) => void;
   showRatingSelection?: boolean;
@@ -31,11 +38,11 @@ export default function FeedbackPage({
   onBack,
   selectedRating,
   onEmojiSelect,
+  setCurrentView,
   address,
   networkMetrics,
   showRatingSelection = false,
 }: FeedbackPageProps) {
-  
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
   const [feedbackText, setFeedbackText] = useState("");
   const [selectedContext, setSelectedContext] = useState<string[]>([]);
@@ -104,37 +111,30 @@ export default function FeedbackPage({
       },
     };
 
-    console.log(requestBody);
-
     try {
-      const response = await fetch(
-        "http://localhost:3000/api/network-feedback",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
+      const response = await fetch(`${apiUrl}/api/network-feedback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       const data = await response.json();
-
-      console.log(data);
-
       if (!response.ok) {
         throw new Error(data.message || "Something went wrong!");
       }
 
       setSubmitted(true);
-      Alert.alert("Success", "Feedback submitted successfully!");
     } catch (error) {
       console.error("Submit error:", error);
       Alert.alert("Error", "Failed to submit feedback.");
     } finally {
       setTimeout(() => {
         setIsSubmitting(false);
-      }, 3000);
+        setSubmitted(false);
+        setCurrentView("main");
+      }, 5000);
     }
   };
 
