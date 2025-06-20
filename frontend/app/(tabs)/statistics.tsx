@@ -31,9 +31,11 @@ if (!Constants.expoConfig?.extra?.API_URL) {
 
 const apiUrl = Constants.expoConfig.extra.API_URL;
 
+type MetricType = 'qoe' | 'speed' | 'latency' | 'signal';
+
 export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   const [selectedPeriod, setSelectedPeriod] = useState("24H");
-  const [selectedMetric, setSelectedMetric] = useState("qoe");
+  const [selectedMetric, setSelectedMetric] = useState<MetricType>("qoe");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,6 +59,55 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     { value: "latency", label: "Latency", icon: Clock, color: "#f59e0b" },
   ];
 
+  // Map metric values to their corresponding API endpoints
+  const metricEndpoints = {
+    qoe: "qoe",
+    speed: "throughput", 
+    signal: "rf-quality",
+    latency: "latency",
+  };
+
+  // Reusable function to fetch analytics data
+  const fetchAnalyticsData = async (
+    userId = null
+  ) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Validate metric type
+      if (!metricEndpoints[selectedMetric]) {
+        throw new Error(`Invalid metric type: ${selectedMetric}`);
+      }
+
+      // Build URL with parameters
+      const endpoint = metricEndpoints[selectedMetric];
+      let url = `${apiUrl}/api/analytics/${endpoint}?period=${selectedPeriod}`;
+
+      if (userId) {
+        url += `&userId=${userId}`;
+      }
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const json = await response.json();
+      console.log(`${selectedMetric} data:`, json);
+
+      setCurrentData(json);
+      return json;
+    } catch (err) {
+      const errorMessage = err.message || "Something went wrong";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchQoEData = async () => {
     try {
       const response = await fetch(
@@ -77,18 +128,9 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     }
   };
 
-  
-
   useEffect(() => {
-    switch (selectedMetric) {
-      case "qoe":
-        fetchQoEData();
-        break;
 
-      default:
-        console.log("Sorry wrong selection");
-        break;
-    }
+    fetchAnalyticsData()
   }, [selectedMetric, selectedPeriod]);
 
   // Dynamic data generation based on period and metric
