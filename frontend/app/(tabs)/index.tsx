@@ -171,7 +171,7 @@ export default function NetworkQoEApp() {
   const signalCheckTimerRef = useRef<number | null>(null);
 
   const config = {
-    periodicInterval: 30000, // 4 hours
+    periodicInterval: 3000000, // 4 hours
     signalThreshold: -85, // dBm threshold for poor signal
     minTimeBetweenPopups: 10000, // 30 minutes between popups
   };
@@ -669,7 +669,7 @@ export default function NetworkQoEApp() {
             <TouchableOpacity
               key={item.view}
               onPress={() => router.push(`/${item.view}` as RelativePathString)}
-              style={[styles.actionButton, { opacity: isLoading ? 0.5 : 1 }]}
+              style={[styles.actionButton]}
             >
               <View style={styles.actionButtonInner}>
                 <Feather name={item.icon as any} size={18} color="#fff" />
