@@ -1,62 +1,62 @@
 import { requestAndroidPermissions } from "@/lib/permissions";
 import { NetworkMetrics } from "@/lib/types";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
+import { BlurView } from "expo-blur";
 import * as Device from "expo-device";
 import * as Location from "expo-location";
 import { RelativePathString, useRouter } from "expo-router";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  AppState,
+  AppStateStatus,
+  Dimensions,
+  Modal,
   NativeModules,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  AppState,
-  Modal,
-  Animated,
-  StatusBar,
-  Dimensions,
-  AppStateStatus,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FeedbackPage from "../../components/FeedbackForm";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { BlurView } from "expo-blur";
 
 const { SignalModule } = NativeModules;
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 // QoE Popup Component
 const QoEPopup: React.FC<{
   visible: boolean;
   onClose: () => void;
   onEmojiSelect: (rating: number) => void;
-  triggerReason: 'periodic' | 'signal' | null;
+  triggerReason: "periodic" | "signal" | null;
 }> = ({ visible, onClose, onEmojiSelect, triggerReason }) => {
   const scaleValue = useRef(new Animated.Value(0)).current;
   const opacityValue = useRef(new Animated.Value(0)).current;
 
   const getMessage = (): string => {
     switch (triggerReason) {
-      case 'signal':
-        return '📶 Poor signal detected - How\'s your network experience?';
-      case 'periodic':
-        return '📶 Rate your QoE - Help us improve network quality';
+      case "signal":
+        return "📶 Poor signal detected - How's your network experience?";
+      case "periodic":
+        return "📶 Rate your QoE - Help us improve network quality";
       default:
-        return '📶 Rate your network experience';
+        return "📶 Rate your network experience";
     }
   };
 
   const emojiOptions = [
-    { emoji: '😞', label: 'Poor', value: 1, color: '#f87171' },
-    { emoji: '😐', label: 'Fair', value: 2, color: '#fb923c' },
-    { emoji: '🙂', label: 'Good', value: 3, color: '#facc15' },
-    { emoji: '😊', label: 'Great', value: 4, color: '#6ee7b7' },
-    { emoji: '🤩', label: 'Excellent', value: 5, color: '#34d399' },
+    { emoji: "😞", label: "Poor", value: 1, color: "#f87171" },
+    { emoji: "😐", label: "Fair", value: 2, color: "#fb923c" },
+    { emoji: "🙂", label: "Good", value: 3, color: "#facc15" },
+    { emoji: "😊", label: "Great", value: 4, color: "#6ee7b7" },
+    { emoji: "🤩", label: "Excellent", value: 5, color: "#34d399" },
   ];
 
   React.useEffect(() => {
@@ -153,14 +153,19 @@ export default function NetworkQoEApp() {
   const router = useRouter();
   const [currentView, setCurrentView] = useState("main");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
-  const [networkMetrics, setNetworkMetrics] = useState<NetworkMetrics | null>(null);
+  const [networkMetrics, setNetworkMetrics] = useState<NetworkMetrics | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [address, setAddress] = useState<Location.LocationGeocodedAddress | null>(null);
-  
+  const [address, setAddress] =
+    useState<Location.LocationGeocodedAddress | null>(null);
+
   // QoE Popup state
   const [shouldShowPopup, setShouldShowPopup] = useState(false);
-  const [popupTriggerReason, setPopupTriggerReason] = useState<'periodic' | 'signal' | null>(null);
+  const [popupTriggerReason, setPopupTriggerReason] = useState<
+    "periodic" | "signal" | null
+  >(null);
   const appState = useRef(AppState.currentState);
   const periodicTimerRef = useRef<number | null>(null);
   const signalCheckTimerRef = useRef<number | null>(null);
@@ -174,13 +179,13 @@ export default function NetworkQoEApp() {
   // Check if enough time has passed since last popup
   const canShowPopup = async (): Promise<boolean> => {
     try {
-      const lastPopupTime = await AsyncStorage.getItem('qoe_last_popup_time');
+      const lastPopupTime = await AsyncStorage.getItem("qoe_last_popup_time");
       if (!lastPopupTime) return true;
-      
+
       const timeSinceLastPopup = Date.now() - parseInt(lastPopupTime, 10);
       return timeSinceLastPopup >= config.minTimeBetweenPopups;
     } catch (error) {
-      console.error('Error checking popup eligibility:', error);
+      console.error("Error checking popup eligibility:", error);
       return true;
     }
   };
@@ -188,19 +193,19 @@ export default function NetworkQoEApp() {
   // Record popup shown time
   const recordPopupShown = async (): Promise<void> => {
     try {
-      await AsyncStorage.setItem('qoe_last_popup_time', Date.now().toString());
-      
+      await AsyncStorage.setItem("qoe_last_popup_time", Date.now().toString());
+
       // Increment popup count for analytics
-      const currentCount = await AsyncStorage.getItem('qoe_popup_count');
+      const currentCount = await AsyncStorage.getItem("qoe_popup_count");
       const newCount = currentCount ? parseInt(currentCount, 10) + 1 : 1;
-      await AsyncStorage.setItem('qoe_popup_count', newCount.toString());
+      await AsyncStorage.setItem("qoe_popup_count", newCount.toString());
     } catch (error) {
-      console.error('Error recording popup:', error);
+      console.error("Error recording popup:", error);
     }
   };
 
   // Trigger popup with reason
-  const triggerPopup = async (reason: 'periodic' | 'signal'): Promise<void> => {
+  const triggerPopup = async (reason: "periodic" | "signal"): Promise<void> => {
     const canShow = await canShowPopup();
     if (canShow) {
       setPopupTriggerReason(reason);
@@ -211,11 +216,13 @@ export default function NetworkQoEApp() {
 
   // Check for poor signal strength
   const checkSignalStrength = async (): Promise<void> => {
-    if (networkMetrics?.signalStrength !== undefined && 
-        networkMetrics.signalStrength !== null && 
-        networkMetrics.signalStrength < config.signalThreshold) {
+    if (
+      networkMetrics?.signalStrength !== undefined &&
+      networkMetrics.signalStrength !== null &&
+      networkMetrics.signalStrength < config.signalThreshold
+    ) {
       console.log(`Poor signal detected: ${networkMetrics.signalStrength} dBm`);
-      await triggerPopup('signal');
+      await triggerPopup("signal");
     }
   };
 
@@ -227,8 +234,8 @@ export default function NetworkQoEApp() {
     }
 
     periodicTimerRef.current = setInterval(async () => {
-      console.log('Periodic QoE check triggered');
-      await triggerPopup('periodic');
+      console.log("Periodic QoE check triggered");
+      await triggerPopup("periodic");
     }, config.periodicInterval) as unknown as number;
   };
 
@@ -241,7 +248,7 @@ export default function NetworkQoEApp() {
 
     // Check signal every 30 seconds when app is active
     signalCheckTimerRef.current = setInterval(async () => {
-      if (appState.current === 'active') {
+      if (appState.current === "active") {
         await checkSignalStrength();
       }
     }, 30000) as unknown as number;
@@ -249,8 +256,11 @@ export default function NetworkQoEApp() {
 
   // Handle app state changes
   const handleAppStateChange = (nextAppState: AppStateStatus): void => {
-    if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App has come to the foreground');
+    if (
+      appState.current.match(/inactive|background/) &&
+      nextAppState === "active"
+    ) {
+      console.log("App has come to the foreground");
       // Check if we should show popup based on time elapsed
       checkPeriodicTrigger();
     }
@@ -260,18 +270,18 @@ export default function NetworkQoEApp() {
   // Check if periodic popup should be triggered based on elapsed time
   const checkPeriodicTrigger = async (): Promise<void> => {
     try {
-      const lastPopupTime = await AsyncStorage.getItem('qoe_last_popup_time');
+      const lastPopupTime = await AsyncStorage.getItem("qoe_last_popup_time");
       if (!lastPopupTime) {
-        await triggerPopup('periodic');
+        await triggerPopup("periodic");
         return;
       }
 
       const timeSinceLastPopup = Date.now() - parseInt(lastPopupTime, 10);
       if (timeSinceLastPopup >= config.periodicInterval) {
-        await triggerPopup('periodic');
+        await triggerPopup("periodic");
       }
     } catch (error) {
-      console.error('Error checking periodic trigger:', error);
+      console.error("Error checking periodic trigger:", error);
     }
   };
 
@@ -357,7 +367,7 @@ export default function NetworkQoEApp() {
       };
 
       setNetworkMetrics(finalMetrics);
-      
+
       // Check signal strength after metrics are loaded
       if (finalMetrics.signalStrength !== null) {
         checkSignalStrength();
@@ -378,9 +388,12 @@ export default function NetworkQoEApp() {
 
   useEffect(() => {
     fetchMetrics();
-    
+
     // Setup QoE popup monitoring
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
     setupPeriodicTimer();
     setupSignalMonitoring();
 
@@ -406,7 +419,9 @@ export default function NetworkQoEApp() {
     return { text: "Poor", color: "#f87171", bars: 1 };
   };
 
-  const signalQuality = getSignalQuality(networkMetrics?.signalStrength || null);
+  const signalQuality = getSignalQuality(
+    networkMetrics?.signalStrength || null
+  );
 
   const handleEmojiRating = (rating: number) => {
     setSelectedRating(rating);
@@ -494,12 +509,13 @@ export default function NetworkQoEApp() {
           </View>
           <View>
             <Text style={styles.headerTitle}>Network QoE Monitor</Text>
-            <Text style={styles.headerSubtitle}>Real-time Quality Analysis</Text>
+            <Text style={styles.headerSubtitle}>
+              Real-time Quality Analysis
+            </Text>
           </View>
         </View>
         <TouchableOpacity
-          onPress={() => setCurrentView("settings")}
-          disabled={isLoading}
+          onPress={() => router.push("/settings")}
           style={{ opacity: isLoading ? 0.5 : 1 }}
         >
           <Feather name="settings" size={24} color="#fff" />
@@ -522,7 +538,9 @@ export default function NetworkQoEApp() {
               <View style={styles.metric}>
                 <Feather name="radio" size={16} color="#93c5fd" />
                 <Text style={styles.metricLabel}> Signal Strength</Text>
-                <Text style={{ color: signalQuality.color, fontWeight: "bold" }}>
+                <Text
+                  style={{ color: signalQuality.color, fontWeight: "bold" }}
+                >
                   {signalQuality.text}
                 </Text>
                 <Text style={styles.metricValue}>
@@ -583,7 +601,9 @@ export default function NetworkQoEApp() {
           <LoadingCard title="Location Info" />
         ) : networkMetrics ? (
           <View style={styles.card}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
               <Feather name="map-pin" size={18} color="#34d399" />
               <View>
                 <Text style={styles.cardTitle}>
@@ -602,7 +622,9 @@ export default function NetworkQoEApp() {
         {!error && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Rate Your Network Experience</Text>
-            <Text style={styles.headerSubtitle}>Help improve network quality</Text>
+            <Text style={styles.headerSubtitle}>
+              Help improve network quality
+            </Text>
 
             <View style={styles.emojiRow}>
               {[
@@ -648,7 +670,6 @@ export default function NetworkQoEApp() {
               key={item.view}
               onPress={() => router.push(`/${item.view}` as RelativePathString)}
               style={[styles.actionButton, { opacity: isLoading ? 0.5 : 1 }]}
-              disabled={isLoading}
             >
               <View style={styles.actionButtonInner}>
                 <Feather name={item.icon as any} size={18} color="#fff" />
@@ -792,67 +813,67 @@ const styles = StyleSheet.create({
   // QoE Popup styles
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 20,
   },
   popupContainer: {
-    backgroundColor: '#1f2937',
+    backgroundColor: "#1f2937",
     borderRadius: 20,
     padding: 24,
     width: Math.min(width - 40, 360),
     maxHeight: height * 0.8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 20,
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: "#374151",
   },
   popupCloseButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 16,
     right: 16,
     zIndex: 1,
     padding: 4,
   },
   popupHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   popupIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1e40af20',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#1e40af20",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 12,
   },
   popupTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 8,
   },
   popupMessage: {
     fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: "#9ca3af",
+    textAlign: "center",
     lineHeight: 20,
   },
   popupEmojiContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
   },
   popupEmojiButton: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#374151',
+    backgroundColor: "#374151",
     minWidth: 52,
     flex: 1,
     marginHorizontal: 2,
@@ -863,13 +884,13 @@ const styles = StyleSheet.create({
   },
   popupEmojiLabel: {
     fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
   popupFooter: {
     fontSize: 12,
-    color: '#6b7280',
-    textAlign: 'center',
-    fontStyle: 'italic',
+    color: "#6b7280",
+    textAlign: "center",
+    fontStyle: "italic",
   },
 });
