@@ -35,6 +35,7 @@ export default function FeedbackPage({
   networkMetrics,
   showRatingSelection = false,
 }: FeedbackPageProps) {
+  
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
   const [feedbackText, setFeedbackText] = useState("");
   const [selectedContext, setSelectedContext] = useState<string[]>([]);
@@ -43,6 +44,7 @@ export default function FeedbackPage({
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    // const userId = await getOrCreateUserId();
 
     if (!networkMetrics) {
       console.warn("No network metrics available");
@@ -68,7 +70,6 @@ export default function FeedbackPage({
       device,
     } = networkMetrics;
 
-    // const userId = await getOrCreateUserId();
     const userId = "user-2456";
     const requestBody = {
       userId: userId, // Replace with actual user ID
