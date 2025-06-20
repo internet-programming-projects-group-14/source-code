@@ -159,6 +159,7 @@ export default function NetworkQoEApp() {
         address={address}
         showRatingSelection={false} // Show feedback form, not rating selection
         networkMetrics={networkMetrics}
+        setCurrentView={setCurrentView}
       />
     );
   }

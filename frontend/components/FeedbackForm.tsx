@@ -27,6 +27,7 @@ const apiUrl = Constants.expoConfig.extra.API_URL;
 interface FeedbackPageProps {
   onBack: () => void;
   selectedRating: number | null;
+  setCurrentView: React.Dispatch<React.SetStateAction<string>>;
   address: Location.LocationGeocodedAddress | null;
   onEmojiSelect?: (rating: number) => void;
   showRatingSelection?: boolean;
@@ -37,6 +38,7 @@ export default function FeedbackPage({
   onBack,
   selectedRating,
   onEmojiSelect,
+  setCurrentView,
   address,
   networkMetrics,
   showRatingSelection = false,
@@ -109,8 +111,6 @@ export default function FeedbackPage({
       },
     };
 
-    console.log(requestBody);
-
     try {
       const response = await fetch(`${apiUrl}/api/network-feedback`, {
         method: "POST",
@@ -126,14 +126,15 @@ export default function FeedbackPage({
       }
 
       setSubmitted(true);
-      Alert.alert("Success", "Feedback submitted successfully!");
     } catch (error) {
       console.error("Submit error:", error);
       Alert.alert("Error", "Failed to submit feedback.");
     } finally {
       setTimeout(() => {
         setIsSubmitting(false);
-      }, 3000);
+        setSubmitted(false);
+        setCurrentView("main");
+      }, 5000);
     }
   };
 
