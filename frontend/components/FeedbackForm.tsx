@@ -1,6 +1,9 @@
+import { getIssueTypesByRating } from "@/lib/getIssuesByRating";
+import { getOrCreateUserId } from "@/lib/identityToken";
 import { NetworkMetrics } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Location from "expo-location";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -14,10 +17,18 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Constants from "expo-constants";
+
+if (!Constants.expoConfig?.extra?.API_URL) {
+  throw new Error("API_URL is not defined in app.config.js!");
+}
+const apiUrl = Constants.expoConfig.extra.API_URL;
 
 interface FeedbackPageProps {
   onBack: () => void;
   selectedRating: number | null;
+  setCurrentView: React.Dispatch<React.SetStateAction<string>>;
+  address: Location.LocationGeocodedAddress | null;
   onEmojiSelect?: (rating: number) => void;
   showRatingSelection?: boolean;
   networkMetrics: NetworkMetrics | null;
@@ -27,6 +38,8 @@ export default function FeedbackPage({
   onBack,
   selectedRating,
   onEmojiSelect,
+  setCurrentView,
+  address,
   networkMetrics,
   showRatingSelection = false,
 }: FeedbackPageProps) {
@@ -38,6 +51,7 @@ export default function FeedbackPage({
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    // const userId = await getOrCreateUserId();
 
     if (!networkMetrics) {
       console.warn("No network metrics available");
@@ -63,13 +77,13 @@ export default function FeedbackPage({
       device,
     } = networkMetrics;
 
+    const userId = "user-2456";
     const requestBody = {
+      userId: userId, // Replace with actual user ID
       feedback: {
-        userId: "user_12345", // Replace with actual user ID
         rating: selectedRating,
         contextInfo: {
-          location: location ? "Captured" : "Unknown",
-          time: new Date().toISOString(),
+          location: location ? location : "Unknown",
           situationContext: selectedContext,
         },
         specificIssues: selectedIssues.map((type) => ({ type })),
@@ -98,32 +112,29 @@ export default function FeedbackPage({
     };
 
     try {
-      const response = await fetch(
-        "https://qoe-backend-ov95.onrender.com/api/network-feedback",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
+      const response = await fetch(`${apiUrl}/api/network-feedback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.message || "Something went wrong!");
       }
 
       setSubmitted(true);
-      Alert.alert("Success", "Feedback submitted successfully!");
     } catch (error) {
       console.error("Submit error:", error);
       Alert.alert("Error", "Failed to submit feedback.");
     } finally {
       setTimeout(() => {
         setIsSubmitting(false);
-      }, 3000);
+        setSubmitted(false);
+        setCurrentView("main");
+      }, 5000);
     }
   };
 
@@ -147,44 +158,9 @@ export default function FeedbackPage({
     return ratings[rating - 1] || ratings[0];
   };
 
-  const issueTypes = [
-    {
-      id: "slow-data",
-      label: "Slow Data Speed",
-      icon: "wifi-outline",
-      severity: "high",
-    },
-    {
-      id: "call-drops",
-      label: "Call Drops/Quality",
-      icon: "call-outline",
-      severity: "high",
-    },
-    {
-      id: "poor-video",
-      label: "Video Streaming Issues",
-      icon: "videocam-outline",
-      severity: "medium",
-    },
-    {
-      id: "web-loading",
-      label: "Web Page Loading",
-      icon: "globe-outline",
-      severity: "medium",
-    },
-    {
-      id: "app-performance",
-      label: "App Performance",
-      icon: "phone-portrait-outline",
-      severity: "low",
-    },
-    {
-      id: "no-connection",
-      label: "No Connection",
-      icon: "warning-outline",
-      severity: "critical",
-    },
-  ];
+  const issueTypes = selectedRating
+    ? getIssueTypesByRating(selectedRating)
+    : getIssueTypesByRating(-1);
 
   const contextOptions = [
     { id: "indoor", label: "Indoor" },
@@ -355,7 +331,9 @@ export default function FeedbackPage({
             <View style={styles.contextInfoRow}>
               <View style={styles.contextInfoItem}>
                 <Text style={styles.contextLabel}>Location</Text>
-                <Text style={styles.contextValue}>Downtown Area</Text>
+                <Text style={styles.contextValue}>
+                  {address ? address.name + " " + address.city : "Loading..."}
+                </Text>
               </View>
               <View style={styles.contextInfoItem}>
                 <Text style={styles.contextLabel}>Time</Text>
@@ -557,7 +535,6 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
     marginBottom: 16,
   },
   cardTitle: {

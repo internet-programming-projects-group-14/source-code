@@ -214,317 +214,305 @@ export default function SpeedTestPage() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={["#111827", "#334155", "#1f2937"]}
-        style={styles.gradient}
+
+      {/* Header */}
+      <BlurView intensity={20} style={styles.header}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <ChevronLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
+          <View style={styles.headerText}>
+            <Text style={styles.headerTitle}>Network Speed Test</Text>
+            <Text style={styles.headerSubtitle}>
+              Comprehensive throughput analysis
+            </Text>
+          </View>
+        </View>
+      </BlurView>
+
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <BlurView intensity={20} style={styles.header}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={onBack} style={styles.backButton}>
-              <ChevronLeft color="#ffffff" size={24} />
-            </TouchableOpacity>
-            <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Network Speed Test</Text>
-              <Text style={styles.headerSubtitle}>
-                Comprehensive throughput analysis
-              </Text>
+        {/* Server Information */}
+        <Card>
+          <View style={styles.cardHeader}>
+            <Signal color="#10b981" size={20} />
+            <Text style={styles.cardTitle}>Test Server Information</Text>
+          </View>
+          <View style={styles.cardContent}>
+            <View style={styles.infoGrid}>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Server Location</Text>
+                <Text style={styles.infoValue}>
+                  {networkInfo.serverLocation}
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Distance</Text>
+                <Text style={styles.infoValue}>
+                  {networkInfo.serverDistance}
+                </Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Your IP</Text>
+                <Text style={styles.infoValue}>{networkInfo.ipAddress}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>ISP</Text>
+                <Text style={styles.infoValue}>{networkInfo.isp}</Text>
+              </View>
+            </View>
+            <View style={styles.badgeContainer}>
+              <Badge color="#a855f7">{networkInfo.networkType}</Badge>
+              <Badge color="#3b82f6">{networkInfo.frequency}</Badge>
             </View>
           </View>
-        </BlurView>
+        </Card>
 
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Server Information */}
-          <Card>
-            <View style={styles.cardHeader}>
-              <Signal color="#10b981" size={20} />
-              <Text style={styles.cardTitle}>Test Server Information</Text>
-            </View>
-            <View style={styles.cardContent}>
-              <View style={styles.infoGrid}>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Server Location</Text>
-                  <Text style={styles.infoValue}>
-                    {networkInfo.serverLocation}
+        {/* Speed Test Interface */}
+        <Card>
+          {testState === "idle" && (
+            <View style={styles.testInterface}>
+              <View style={styles.idleContainer}>
+                <LinearGradient
+                  colors={["#10b98133", "#3b82f633"]}
+                  style={styles.idleIcon}
+                >
+                  <Wifi color="#ffffff" size={64} />
+                </LinearGradient>
+                <View style={styles.idleText}>
+                  <Text style={styles.idleTitle}>Ready to Test</Text>
+                  <Text style={styles.idleSubtitle}>
+                    Measure your network&apos;s download, upload speeds and
+                    latency
                   </Text>
                 </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Distance</Text>
-                  <Text style={styles.infoValue}>
-                    {networkInfo.serverDistance}
-                  </Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Your IP</Text>
-                  <Text style={styles.infoValue}>{networkInfo.ipAddress}</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>ISP</Text>
-                  <Text style={styles.infoValue}>{networkInfo.isp}</Text>
-                </View>
-              </View>
-              <View style={styles.badgeContainer}>
-                <Badge color="#a855f7">{networkInfo.networkType}</Badge>
-                <Badge color="#3b82f6">{networkInfo.frequency}</Badge>
+                <TouchableOpacity
+                  onPress={runSpeedTest}
+                  style={styles.startButton}
+                >
+                  <Play color="#ffffff" size={20} />
+                  <Text style={styles.startButtonText}>Start Speed Test</Text>
+                </TouchableOpacity>
               </View>
             </View>
-          </Card>
+          )}
 
-          {/* Speed Test Interface */}
-          <Card>
-            {testState === "idle" && (
-              <View style={styles.testInterface}>
-                <View style={styles.idleContainer}>
-                  <LinearGradient
-                    colors={["#10b98133", "#3b82f633"]}
-                    style={styles.idleIcon}
-                  >
-                    <Wifi color="#ffffff" size={64} />
-                  </LinearGradient>
-                  <View style={styles.idleText}>
-                    <Text style={styles.idleTitle}>Ready to Test</Text>
-                    <Text style={styles.idleSubtitle}>
-                      Measure your network&apos;s download, upload speeds and
-                      latency
+          {testState === "running" && (
+            <View style={styles.testInterface}>
+              <View style={styles.runningContainer}>
+                <View style={styles.progressContainer}>
+                  <CircularProgress progress={progress} />
+                  <View style={styles.progressContent}>
+                    {currentPhase === "latency" && (
+                      <Clock color="#eab308" size={32} />
+                    )}
+                    {currentPhase === "download" && (
+                      <Download color="#3b82f6" size={32} />
+                    )}
+                    {currentPhase === "upload" && (
+                      <Upload color="#a855f7" size={32} />
+                    )}
+                    <Text style={styles.progressValue}>
+                      {currentPhase === "latency"
+                        ? `${progress}%`
+                        : `${realtimeSpeed.toFixed(1)}`}
+                    </Text>
+                    <Text style={styles.progressUnit}>
+                      {currentPhase === "latency" ? "Progress" : "Mbps"}
                     </Text>
                   </View>
+                </View>
+                <View style={styles.runningText}>
+                  <Text style={styles.runningTitle}>{getPhaseLabel()}</Text>
+                  <Text style={styles.runningSubtitle}>
+                    Please wait while we analyze your connection
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {testState === "completed" && (
+            <View style={styles.testInterface}>
+              <View style={styles.completedContainer}>
+                <View style={styles.completedHeader}>
+                  <Text style={styles.completedTitle}>Test Complete</Text>
+                  <Text style={styles.completedSubtitle}>
+                    Your network performance results
+                  </Text>
+                </View>
+
+                <View style={styles.resultsGrid}>
+                  <View style={styles.resultCard}>
+                    <Download color="#3b82f6" size={24} />
+                    <Text style={styles.resultValue}>
+                      {results.downloadSpeed.toFixed(1)}
+                    </Text>
+                    <Text style={styles.resultLabel}>Mbps Download</Text>
+                    <Badge
+                      color={
+                        getSpeedQuality(results.downloadSpeed, "download").color
+                      }
+                    >
+                      {getSpeedQuality(results.downloadSpeed, "download").label}
+                    </Badge>
+                  </View>
+
+                  <View style={styles.resultCard}>
+                    <Upload color="#a855f7" size={24} />
+                    <Text style={styles.resultValue}>
+                      {results.uploadSpeed.toFixed(1)}
+                    </Text>
+                    <Text style={styles.resultLabel}>Mbps Upload</Text>
+                    <Badge
+                      color={
+                        getSpeedQuality(results.uploadSpeed, "upload").color
+                      }
+                    >
+                      {getSpeedQuality(results.uploadSpeed, "upload").label}
+                    </Badge>
+                  </View>
+                </View>
+
+                <View style={styles.metricsGrid}>
+                  <View style={styles.metricItem}>
+                    <Clock color="#eab308" size={20} />
+                    <Text style={styles.metricValue}>
+                      {results.latency.toFixed(0)}
+                    </Text>
+                    <Text style={styles.metricLabel}>ms Latency</Text>
+                  </View>
+                  <View style={styles.metricItem}>
+                    <Activity color="#f97316" size={20} />
+                    <Text style={styles.metricValue}>
+                      {results.jitter.toFixed(1)}
+                    </Text>
+                    <Text style={styles.metricLabel}>ms Jitter</Text>
+                  </View>
+                  <View style={styles.metricItem}>
+                    <Zap color="#ef4444" size={20} />
+                    <Text style={styles.metricValue}>
+                      {results.packetLoss.toFixed(2)}
+                    </Text>
+                    <Text style={styles.metricLabel}>% Loss</Text>
+                  </View>
+                </View>
+
+                <View style={styles.actionButtons}>
                   <TouchableOpacity
-                    onPress={runSpeedTest}
-                    style={styles.startButton}
+                    onPress={resetTest}
+                    style={styles.actionButton}
                   >
-                    <Play color="#ffffff" size={20} />
-                    <Text style={styles.startButtonText}>Start Speed Test</Text>
+                    <RotateCcw color="#ffffff" size={16} />
+                    <Text style={styles.actionButtonText}>Test Again</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Text style={styles.actionButtonText}>Share Results</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
-
-            {testState === "running" && (
-              <View style={styles.testInterface}>
-                <View style={styles.runningContainer}>
-                  <View style={styles.progressContainer}>
-                    <CircularProgress progress={progress} />
-                    <View style={styles.progressContent}>
-                      {currentPhase === "latency" && (
-                        <Clock color="#eab308" size={32} />
-                      )}
-                      {currentPhase === "download" && (
-                        <Download color="#3b82f6" size={32} />
-                      )}
-                      {currentPhase === "upload" && (
-                        <Upload color="#a855f7" size={32} />
-                      )}
-                      <Text style={styles.progressValue}>
-                        {currentPhase === "latency"
-                          ? `${progress}%`
-                          : `${realtimeSpeed.toFixed(1)}`}
-                      </Text>
-                      <Text style={styles.progressUnit}>
-                        {currentPhase === "latency" ? "Progress" : "Mbps"}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.runningText}>
-                    <Text style={styles.runningTitle}>{getPhaseLabel()}</Text>
-                    <Text style={styles.runningSubtitle}>
-                      Please wait while we analyze your connection
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {testState === "completed" && (
-              <View style={styles.testInterface}>
-                <View style={styles.completedContainer}>
-                  <View style={styles.completedHeader}>
-                    <Text style={styles.completedTitle}>Test Complete</Text>
-                    <Text style={styles.completedSubtitle}>
-                      Your network performance results
-                    </Text>
-                  </View>
-
-                  <View style={styles.resultsGrid}>
-                    <View style={styles.resultCard}>
-                      <Download color="#3b82f6" size={24} />
-                      <Text style={styles.resultValue}>
-                        {results.downloadSpeed.toFixed(1)}
-                      </Text>
-                      <Text style={styles.resultLabel}>Mbps Download</Text>
-                      <Badge
-                        color={
-                          getSpeedQuality(results.downloadSpeed, "download")
-                            .color
-                        }
-                      >
-                        {
-                          getSpeedQuality(results.downloadSpeed, "download")
-                            .label
-                        }
-                      </Badge>
-                    </View>
-
-                    <View style={styles.resultCard}>
-                      <Upload color="#a855f7" size={24} />
-                      <Text style={styles.resultValue}>
-                        {results.uploadSpeed.toFixed(1)}
-                      </Text>
-                      <Text style={styles.resultLabel}>Mbps Upload</Text>
-                      <Badge
-                        color={
-                          getSpeedQuality(results.uploadSpeed, "upload").color
-                        }
-                      >
-                        {getSpeedQuality(results.uploadSpeed, "upload").label}
-                      </Badge>
-                    </View>
-                  </View>
-
-                  <View style={styles.metricsGrid}>
-                    <View style={styles.metricItem}>
-                      <Clock color="#eab308" size={20} />
-                      <Text style={styles.metricValue}>
-                        {results.latency.toFixed(0)}
-                      </Text>
-                      <Text style={styles.metricLabel}>ms Latency</Text>
-                    </View>
-                    <View style={styles.metricItem}>
-                      <Activity color="#f97316" size={20} />
-                      <Text style={styles.metricValue}>
-                        {results.jitter.toFixed(1)}
-                      </Text>
-                      <Text style={styles.metricLabel}>ms Jitter</Text>
-                    </View>
-                    <View style={styles.metricItem}>
-                      <Zap color="#ef4444" size={20} />
-                      <Text style={styles.metricValue}>
-                        {results.packetLoss.toFixed(2)}
-                      </Text>
-                      <Text style={styles.metricLabel}>% Loss</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.actionButtons}>
-                    <TouchableOpacity
-                      onPress={resetTest}
-                      style={styles.actionButton}
-                    >
-                      <RotateCcw color="#ffffff" size={16} />
-                      <Text style={styles.actionButtonText}>Test Again</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
-                      <Text style={styles.actionButtonText}>Share Results</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
-          </Card>
-
-          {/* Technical Details */}
-          {testState === "completed" && (
-            <Card>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>Technical Analysis</Text>
-              </View>
-              <View style={styles.cardContent}>
-                <View style={styles.technicalGrid}>
-                  <View style={styles.technicalItem}>
-                    <Text style={styles.infoLabel}>Test Duration</Text>
-                    <Text style={styles.infoValue}>45.2 seconds</Text>
-                  </View>
-                  <View style={styles.technicalItem}>
-                    <Text style={styles.infoLabel}>Data Transferred</Text>
-                    <Text style={styles.infoValue}>127.4 MB</Text>
-                  </View>
-                  <View style={styles.technicalItem}>
-                    <Text style={styles.infoLabel}>Peak Download</Text>
-                    <Text style={styles.infoValue}>
-                      {(results.downloadSpeed * 1.2).toFixed(1)} Mbps
-                    </Text>
-                  </View>
-                  <View style={styles.technicalItem}>
-                    <Text style={styles.infoLabel}>Peak Upload</Text>
-                    <Text style={styles.infoValue}>
-                      {(results.uploadSpeed * 1.15).toFixed(1)} Mbps
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.performanceRating}>
-                  <Text style={styles.performanceTitle}>
-                    Performance Rating
-                  </Text>
-                  <View style={styles.performanceItems}>
-                    <View style={styles.performanceItem}>
-                      <Text style={styles.performanceLabel}>
-                        Streaming (4K)
-                      </Text>
-                      <Badge
-                        color={
-                          results.downloadSpeed >= 25 ? "#10b981" : "#ef4444"
-                        }
-                      >
-                        {results.downloadSpeed >= 25 ? "Excellent" : "Limited"}
-                      </Badge>
-                    </View>
-                    <View style={styles.performanceItem}>
-                      <Text style={styles.performanceLabel}>Video Calls</Text>
-                      <Badge
-                        color={results.uploadSpeed >= 5 ? "#10b981" : "#f97316"}
-                      >
-                        {results.uploadSpeed >= 5 ? "Excellent" : "Good"}
-                      </Badge>
-                    </View>
-                    <View style={styles.performanceItem}>
-                      <Text style={styles.performanceLabel}>Gaming</Text>
-                      <Badge
-                        color={results.latency <= 50 ? "#10b981" : "#eab308"}
-                      >
-                        {results.latency <= 50 ? "Excellent" : "Good"}
-                      </Badge>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </Card>
+            </View>
           )}
+        </Card>
 
-          {/* Historical Results */}
-          <Card style={styles.lastCard}>
+        {/* Technical Details */}
+        {testState === "completed" && (
+          <Card>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Recent Test History</Text>
+              <Text style={styles.cardTitle}>Technical Analysis</Text>
             </View>
             <View style={styles.cardContent}>
-              <View style={styles.historyItems}>
-                <View style={styles.historyItem}>
-                  <View>
-                    <Text style={styles.historyTime}>Today, 2:30 PM</Text>
-                    <Text style={styles.historyLocation}>Downtown Area</Text>
-                  </View>
-                  <View style={styles.historyResults}>
-                    <Text style={styles.historySpeed}>42.1 / 11.8 Mbps</Text>
-                    <Text style={styles.historyLatency}>23ms latency</Text>
-                  </View>
+              <View style={styles.technicalGrid}>
+                <View style={styles.technicalItem}>
+                  <Text style={styles.infoLabel}>Test Duration</Text>
+                  <Text style={styles.infoValue}>45.2 seconds</Text>
                 </View>
-                <View style={styles.historyItem}>
-                  <View>
-                    <Text style={styles.historyTime}>Yesterday, 6:45 PM</Text>
-                    <Text style={styles.historyLocation}>Home</Text>
+                <View style={styles.technicalItem}>
+                  <Text style={styles.infoLabel}>Data Transferred</Text>
+                  <Text style={styles.infoValue}>127.4 MB</Text>
+                </View>
+                <View style={styles.technicalItem}>
+                  <Text style={styles.infoLabel}>Peak Download</Text>
+                  <Text style={styles.infoValue}>
+                    {(results.downloadSpeed * 1.2).toFixed(1)} Mbps
+                  </Text>
+                </View>
+                <View style={styles.technicalItem}>
+                  <Text style={styles.infoLabel}>Peak Upload</Text>
+                  <Text style={styles.infoValue}>
+                    {(results.uploadSpeed * 1.15).toFixed(1)} Mbps
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.performanceRating}>
+                <Text style={styles.performanceTitle}>Performance Rating</Text>
+                <View style={styles.performanceItems}>
+                  <View style={styles.performanceItem}>
+                    <Text style={styles.performanceLabel}>Streaming (4K)</Text>
+                    <Badge
+                      color={
+                        results.downloadSpeed >= 25 ? "#10b981" : "#ef4444"
+                      }
+                    >
+                      {results.downloadSpeed >= 25 ? "Excellent" : "Limited"}
+                    </Badge>
                   </View>
-                  <View style={styles.historyResults}>
-                    <Text style={styles.historySpeed}>38.7 / 9.2 Mbps</Text>
-                    <Text style={styles.historyLatency}>31ms latency</Text>
+                  <View style={styles.performanceItem}>
+                    <Text style={styles.performanceLabel}>Video Calls</Text>
+                    <Badge
+                      color={results.uploadSpeed >= 5 ? "#10b981" : "#f97316"}
+                    >
+                      {results.uploadSpeed >= 5 ? "Excellent" : "Good"}
+                    </Badge>
+                  </View>
+                  <View style={styles.performanceItem}>
+                    <Text style={styles.performanceLabel}>Gaming</Text>
+                    <Badge
+                      color={results.latency <= 50 ? "#10b981" : "#eab308"}
+                    >
+                      {results.latency <= 50 ? "Excellent" : "Good"}
+                    </Badge>
                   </View>
                 </View>
               </View>
             </View>
           </Card>
-        </ScrollView>
-      </LinearGradient>
+        )}
+
+        {/* Historical Results */}
+        <Card style={styles.lastCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Recent Test History</Text>
+          </View>
+          <View style={styles.cardContent}>
+            <View style={styles.historyItems}>
+              <View style={styles.historyItem}>
+                <View>
+                  <Text style={styles.historyTime}>Today, 2:30 PM</Text>
+                  <Text style={styles.historyLocation}>Downtown Area</Text>
+                </View>
+                <View style={styles.historyResults}>
+                  <Text style={styles.historySpeed}>42.1 / 11.8 Mbps</Text>
+                  <Text style={styles.historyLatency}>23ms latency</Text>
+                </View>
+              </View>
+              <View style={styles.historyItem}>
+                <View>
+                  <Text style={styles.historyTime}>Yesterday, 6:45 PM</Text>
+                  <Text style={styles.historyLocation}>Home</Text>
+                </View>
+                <View style={styles.historyResults}>
+                  <Text style={styles.historySpeed}>38.7 / 9.2 Mbps</Text>
+                  <Text style={styles.historyLatency}>31ms latency</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Card>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -538,13 +526,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingTop: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   headerContent: {
     flexDirection: "row",

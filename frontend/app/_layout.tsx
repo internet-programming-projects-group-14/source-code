@@ -109,6 +109,7 @@ function AppLayout() {
       <Stack initialRouteName={isFirstLaunch ? "onboarding" : "(tabs)"}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options = {{headerShown: false}} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
