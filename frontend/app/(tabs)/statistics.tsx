@@ -1,41 +1,53 @@
-import React, { useState, useEffect } from "react";
+import { QoEAnalyticsResponse } from "@/lib/types";
+import Constants from "expo-constants";
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from "react-native";
-import {
-  ChevronLeft,
   BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Zap,
-  Signal,
+  ChevronLeft,
   Clock,
   RefreshCw,
+  Signal,
+  TrendingDown,
+  TrendingUp,
   Wifi,
+  Zap,
 } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const { width } = Dimensions.get("window");
 
+if (!Constants.expoConfig?.extra?.API_URL) {
+  console.error("API_URL is not defined in app.config.js!");
+}
+
+const apiUrl = Constants.expoConfig.extra.API_URL;
+
 export default function StatisticsPage({ onBack }: { onBack: () => void }) {
-  const [selectedPeriod, setSelectedPeriod] = useState("7d");
+  const [selectedPeriod, setSelectedPeriod] = useState("24H");
   const [selectedMetric, setSelectedMetric] = useState("qoe");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [animatedValues] = useState(() =>
     Array.from({ length: 7 }, () => new Animated.Value(0))
   );
-  const [currentData, setCurrentData] = useState({});
+  const [currentData, setCurrentData] = useState<
+    QoEAnalyticsResponse | undefined
+  >(undefined);
 
   const periods = [
-    { value: "24h", label: "24H" },
-    { value: "7d", label: "7D" },
-    { value: "30d", label: "30D" },
-    { value: "90d", label: "90D" },
+    { value: "24H", label: "24H" },
+    { value: "7D", label: "7D" },
+    { value: "30D", label: "30D" },
   ];
 
   const metrics = [
@@ -44,6 +56,40 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     { value: "signal", label: "RF Quality", icon: Signal, color: "#34d399" },
     { value: "latency", label: "Latency", icon: Clock, color: "#f59e0b" },
   ];
+
+  const fetchQoEData = async () => {
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/analytics/qoe?period=${selectedPeriod}&userId=user-2456`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const json = await response.json();
+      console.log(json);
+      setCurrentData(json);
+    } catch (err) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
+
+  useEffect(() => {
+    switch (selectedMetric) {
+      case "qoe":
+        fetchQoEData();
+        break;
+
+      default:
+        console.log("Sorry wrong selection");
+        break;
+    }
+  }, [selectedMetric, selectedPeriod]);
 
   // Dynamic data generation based on period and metric
   const generateData = (period: string, metric: string) => {
@@ -161,6 +207,14 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     )
   );
 
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -220,293 +274,335 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
           </View>
         </View>
 
-        {/* Key Performance Indicators */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Performance Overview</Text>
-          <View style={styles.kpiContainer}>
-            <View style={styles.kpiCard}>
-              <View style={styles.kpiHeader}>
-                <View
-                  style={[
-                    styles.kpiIcon,
-                    { backgroundColor: currentMetric?.color + "20" },
-                  ]}
-                >
-                  {currentMetric &&
-                    React.createElement(currentMetric.icon, {
-                      color: currentMetric.color,
-                      size: 20,
-                    })}
+        {loading ? (
+          <>
+            <View style={styles.center}>
+              <ActivityIndicator size="large" />
+              <Text>Loading QoE data...</Text>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Key Performance Indicators */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Performance Overview</Text>
+              <View style={styles.kpiContainer}>
+                <View style={styles.kpiCard}>
+                  <View style={styles.kpiHeader}>
+                    <View
+                      style={[
+                        styles.kpiIcon,
+                        { backgroundColor: currentMetric?.color + "20" },
+                      ]}
+                    >
+                      {currentMetric &&
+                        React.createElement(currentMetric.icon, {
+                          color: currentMetric.color,
+                          size: 20,
+                        })}
+                    </View>
+                    <Text style={styles.kpiLabel}>
+                      Average {currentMetric?.label}
+                    </Text>
+                  </View>
+                  <View style={styles.kpiValueContainer}>
+                    <Text style={styles.kpiValue}>
+                      {currentData?.data.performanceOverview.averageQoEScore}
+                      {selectedMetric === "speed" && (
+                        <Text style={styles.kpiUnit}> Mbps</Text>
+                      )}
+                      {selectedMetric === "signal" && (
+                        <Text style={styles.kpiUnit}> dBm</Text>
+                      )}
+                      {selectedMetric === "latency" && (
+                        <Text style={styles.kpiUnit}> ms</Text>
+                      )}
+                    </Text>
+                    <View style={styles.trendContainer}>
+                      {currentData?.data.performanceOverview.percentageChange >=
+                      0 ? (
+                        <TrendingUp color="#34d399" size={16} />
+                      ) : (
+                        <TrendingDown color="#f87171" size={16} />
+                      )}
+                      <Text
+                        style={[
+                          styles.trendText,
+                          {
+                            color:
+                              currentData?.data.performanceOverview
+                                .percentageChange >= 0
+                                ? "#34d399"
+                                : "#f87171",
+                          },
+                        ]}
+                      >
+                        {currentData?.data.performanceOverview
+                          .percentageChange >= 0
+                          ? "+"
+                          : ""}
+                        {currentData?.data.performanceOverview.percentageChange}
+                        %
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.kpiLabel}>
-                  Average {currentMetric?.label}
-                </Text>
+
+                <View style={styles.kpiCard}>
+                  <View style={styles.kpiHeader}>
+                    <View
+                      style={[styles.kpiIcon, { backgroundColor: "#10b98120" }]}
+                    >
+                      <Wifi color="#10b981" size={20} />
+                    </View>
+                    <Text style={styles.kpiLabel}>Data Points</Text>
+                  </View>
+                  <View style={styles.kpiValueContainer}>
+                    <Text style={styles.kpiValue}>
+                      {currentData?.data.performanceOverview.dataPoints}
+                    </Text>
+                    <Text style={styles.kpiSubtext}> measurements</Text>
+                  </View>
+                </View>
               </View>
-              <View style={styles.kpiValueContainer}>
-                <Text style={styles.kpiValue}>
-                  {averageValue.toFixed(1)}
-                  {selectedMetric === "speed" && (
-                    <Text style={styles.kpiUnit}> Mbps</Text>
-                  )}
-                  {selectedMetric === "signal" && (
-                    <Text style={styles.kpiUnit}> dBm</Text>
-                  )}
-                  {selectedMetric === "latency" && (
-                    <Text style={styles.kpiUnit}> ms</Text>
-                  )}
+            </View>
+
+            {/* Metric Selection */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Select Metric</Text>
+              <View style={styles.metricButtonsContainer}>
+                {metrics.map((metric) => {
+                  const Icon = metric.icon;
+                  const isActive = selectedMetric === metric.value;
+                  return (
+                    <TouchableOpacity
+                      key={metric.value}
+                      style={[
+                        styles.metricButton,
+                        isActive && [
+                          styles.metricButtonActive,
+                          { borderColor: metric.color },
+                        ],
+                      ]}
+                      onPress={() => setSelectedMetric(metric.value)}
+                    >
+                      <View
+                        style={[
+                          styles.metricIconContainer,
+                          {
+                            backgroundColor: isActive
+                              ? metric.color
+                              : metric.color + "20",
+                          },
+                        ]}
+                      >
+                        <Icon
+                          color={isActive ? "white" : metric.color}
+                          size={18}
+                        />
+                      </View>
+                      <Text
+                        style={[
+                          styles.metricButtonText,
+                          isActive && styles.metricButtonTextActive,
+                        ]}
+                      >
+                        {metric.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Performance Chart */}
+            <View style={styles.sectionContainer}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>
+                  {selectedMetric === "qoe"
+                    ? "Quality of Experience Trends"
+                    : selectedMetric === "speed"
+                    ? "Network Throughput Analysis"
+                    : selectedMetric === "signal"
+                    ? "RF Signal Quality"
+                    : "Network Latency Metrics"}
                 </Text>
-                <View style={styles.trendContainer}>
-                  {trendValue >= 0 ? (
-                    <TrendingUp color="#34d399" size={16} />
-                  ) : (
-                    <TrendingDown color="#f87171" size={16} />
-                  )}
-                  <Text
-                    style={[
-                      styles.trendText,
-                      { color: trendValue >= 0 ? "#34d399" : "#f87171" },
-                    ]}
-                  >
-                    {trendValue >= 0 ? "+" : ""}
-                    {trendValue}%
+                <View style={styles.chartStats}>
+                  <Text style={styles.chartStat}>
+                    Max:{" "}
+                    <Text style={styles.chartStatValue}>
+                      {currentData?.data.qualityTrends.max}
+                    </Text>
+                  </Text>
+                  <Text style={styles.chartStat}>
+                    Min:{" "}
+                    <Text style={styles.chartStatValue}>
+                      {currentData?.data.qualityTrends.min}
+                    </Text>
                   </Text>
                 </View>
               </View>
-            </View>
 
-            <View style={styles.kpiCard}>
-              <View style={styles.kpiHeader}>
-                <View
-                  style={[styles.kpiIcon, { backgroundColor: "#10b98120" }]}
-                >
-                  <Wifi color="#10b981" size={20} />
+              <View style={styles.chartContainer}>
+                <View style={styles.barChartContainer}>
+                  {currentData?.data.qualityTrends.data
+                    .slice(0, 7)
+                    .map((item, index) => {
+                      const maxVal =
+                        selectedMetric === "speed"
+                          ? getMaxValue(data, "download")
+                          : Math.max(...data.map((d) => d.value));
+                      const height =
+                        selectedMetric === "speed"
+                          ? getBarHeight(item.download, maxVal)
+                          : getBarHeight(item.value, maxVal);
+
+                      return (
+                        <View key={index} style={styles.barChartColumn}>
+                          <View style={styles.barChartBackground}>
+                            <Animated.View
+                              style={[
+                                styles.barChartBar,
+                                {
+                                  height: animatedValues[index].interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ["0%", `${height}%`],
+                                  }),
+                                  backgroundColor:
+                                    currentMetric?.color || "#60a5fa",
+                                },
+                              ]}
+                            />
+                            {selectedMetric === "speed" && (
+                              <Animated.View
+                                style={[
+                                  styles.barChartBar,
+                                  {
+                                    height: animatedValues[index].interpolate({
+                                      inputRange: [0, 1],
+                                      outputRange: [
+                                        "0%",
+                                        `${getBarHeight(item.upload, maxVal)}%`,
+                                      ],
+                                    }),
+                                    backgroundColor: "#8b5cf6",
+                                    opacity: 0.7,
+                                  },
+                                ]}
+                              />
+                            )}
+                          </View>
+                          <Text style={styles.barChartLabel}>{item.time}</Text>
+                          <Text style={styles.barChartValue}>
+                            {selectedMetric === "speed"
+                              ? item.download.toFixed(1)
+                              : item.value.toFixed(1)}
+                          </Text>
+                        </View>
+                      );
+                    })}
                 </View>
-                <Text style={styles.kpiLabel}>Data Points</Text>
-              </View>
-              <View style={styles.kpiValueContainer}>
-                <Text style={styles.kpiValue}>{data.length}</Text>
-                <Text style={styles.kpiSubtext}>measurements</Text>
+
+                {selectedMetric === "speed" && (
+                  <View style={styles.chartLegend}>
+                    <View style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendColor,
+                          { backgroundColor: currentMetric?.color },
+                        ]}
+                      />
+                      <Text style={styles.legendText}>Download</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendColor,
+                          { backgroundColor: "#8b5cf6" },
+                        ]}
+                      />
+                      <Text style={styles.legendText}>Upload</Text>
+                    </View>
+                  </View>
+                )}
               </View>
             </View>
-          </View>
-        </View>
 
-        {/* Metric Selection */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Select Metric</Text>
-          <View style={styles.metricButtonsContainer}>
-            {metrics.map((metric) => {
-              const Icon = metric.icon;
-              const isActive = selectedMetric === metric.value;
-              return (
-                <TouchableOpacity
-                  key={metric.value}
-                  style={[
-                    styles.metricButton,
-                    isActive && [
-                      styles.metricButtonActive,
-                      { borderColor: metric.color },
-                    ],
-                  ]}
-                  onPress={() => setSelectedMetric(metric.value)}
-                >
-                  <View
+            {/* Performance Summary */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Performance Summary</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryCard}>
+                  <View style={styles.summaryHeader}>
+                    <TrendingUp color="#34d399" size={16} />
+                    <Text style={styles.summaryLabel}>Peak Performance</Text>
+                  </View>
+                  <Text style={styles.summaryValuePositive}>
+                    {currentData?.data.performanceSummary.peakPerformance}
+                    {selectedMetric === "speed"
+                      ? " Mbps"
+                      : selectedMetric === "signal"
+                      ? " dBm"
+                      : selectedMetric === "latency"
+                      ? " ms"
+                      : "/5"}
+                  </Text>
+                </View>
+
+                <View style={styles.summaryCard}>
+                  <View style={styles.summaryHeader}>
+                    <TrendingDown color="#f87171" size={16} />
+                    <Text style={styles.summaryLabel}>Lowest Performance</Text>
+                  </View>
+                  <Text style={styles.summaryValueNegative}>
+                    {currentData?.data.performanceSummary.lowestPerformance}
+                    {selectedMetric === "speed"
+                      ? " Mbps"
+                      : selectedMetric === "signal"
+                      ? " dBm"
+                      : selectedMetric === "latency"
+                      ? " ms"
+                      : "/5"}
+                  </Text>
+                </View>
+
+                <View style={styles.summaryCard}>
+                  <View style={styles.summaryHeader}>
+                    <BarChart3 color="#60a5fa" size={16} />
+                    <Text style={styles.summaryLabel}>Variance</Text>
+                  </View>
+                  <Text style={styles.summaryValue}>
+                    {currentData?.data.performanceSummary.variance} range
+                  </Text>
+                </View>
+                <View style={styles.summaryCard}>
+                  <View style={styles.summaryHeader}>
+                    {currentData?.data.performanceSummary.trend >= 0 ? (
+                      <TrendingUp color="#34d399" size={16} />
+                    ) : (
+                      <TrendingDown color="#f87171" size={16} />
+                    )}
+                    <Text style={styles.summaryLabel}>Trend</Text>
+                  </View>
+                  <Text
                     style={[
-                      styles.metricIconContainer,
+                      styles.summaryValue,
                       {
-                        backgroundColor: isActive
-                          ? metric.color
-                          : metric.color + "20",
+                        color:
+                          currentData?.data.performanceSummary.trend >= 0
+                            ? "#34d399"
+                            : "#f87171",
                       },
                     ]}
                   >
-                    <Icon color={isActive ? "white" : metric.color} size={18} />
-                  </View>
-                  <Text
-                    style={[
-                      styles.metricButtonText,
-                      isActive && styles.metricButtonTextActive,
-                    ]}
-                  >
-                    {metric.label}
+                    {currentData?.data.performanceSummary.trend >= 0 ? "+" : ""}
+                    {currentData?.data.performanceSummary.trend}% change
                   </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Performance Chart */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>
-              {selectedMetric === "qoe"
-                ? "Quality of Experience Trends"
-                : selectedMetric === "speed"
-                ? "Network Throughput Analysis"
-                : selectedMetric === "signal"
-                ? "RF Signal Quality"
-                : "Network Latency Metrics"}
-            </Text>
-            <View style={styles.chartStats}>
-              <Text style={styles.chartStat}>
-                Max:{" "}
-                <Text style={styles.chartStatValue}>{maxValue.toFixed(1)}</Text>
-              </Text>
-              <Text style={styles.chartStat}>
-                Min:{" "}
-                <Text style={styles.chartStatValue}>{minValue.toFixed(1)}</Text>
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.chartContainer}>
-            <View style={styles.barChartContainer}>
-              {data.slice(0, 7).map((item, index) => {
-                const maxVal =
-                  selectedMetric === "speed"
-                    ? getMaxValue(data, "download")
-                    : Math.max(...data.map((d) => d.value));
-                const height =
-                  selectedMetric === "speed"
-                    ? getBarHeight(item.download, maxVal)
-                    : getBarHeight(item.value, maxVal);
-
-                return (
-                  <View key={index} style={styles.barChartColumn}>
-                    <View style={styles.barChartBackground}>
-                      <Animated.View
-                        style={[
-                          styles.barChartBar,
-                          {
-                            height: animatedValues[index].interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ["0%", `${height}%`],
-                            }),
-                            backgroundColor: currentMetric?.color || "#60a5fa",
-                          },
-                        ]}
-                      />
-                      {selectedMetric === "speed" && (
-                        <Animated.View
-                          style={[
-                            styles.barChartBar,
-                            {
-                              height: animatedValues[index].interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [
-                                  "0%",
-                                  `${getBarHeight(item.upload, maxVal)}%`,
-                                ],
-                              }),
-                              backgroundColor: "#8b5cf6",
-                              opacity: 0.7,
-                            },
-                          ]}
-                        />
-                      )}
-                    </View>
-                    <Text style={styles.barChartLabel}>{item.time}</Text>
-                    <Text style={styles.barChartValue}>
-                      {selectedMetric === "speed"
-                        ? item.download.toFixed(1)
-                        : item.value.toFixed(1)}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-
-            {selectedMetric === "speed" && (
-              <View style={styles.chartLegend}>
-                <View style={styles.legendItem}>
-                  <View
-                    style={[
-                      styles.legendColor,
-                      { backgroundColor: currentMetric?.color },
-                    ]}
-                  />
-                  <Text style={styles.legendText}>Download</Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View
-                    style={[styles.legendColor, { backgroundColor: "#8b5cf6" }]}
-                  />
-                  <Text style={styles.legendText}>Upload</Text>
                 </View>
               </View>
-            )}
-          </View>
-        </View>
-
-        {/* Performance Summary */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Performance Summary</Text>
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryHeader}>
-                <TrendingUp color="#34d399" size={16} />
-                <Text style={styles.summaryLabel}>Peak Performance</Text>
-              </View>
-              <Text style={styles.summaryValuePositive}>
-                {maxValue.toFixed(1)}
-                {selectedMetric === "speed"
-                  ? " Mbps"
-                  : selectedMetric === "signal"
-                  ? " dBm"
-                  : selectedMetric === "latency"
-                  ? " ms"
-                  : "/5"}
-              </Text>
             </View>
-
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryHeader}>
-                <TrendingDown color="#f87171" size={16} />
-                <Text style={styles.summaryLabel}>Lowest Performance</Text>
-              </View>
-              <Text style={styles.summaryValueNegative}>
-                {minValue.toFixed(1)}
-                {selectedMetric === "speed"
-                  ? " Mbps"
-                  : selectedMetric === "signal"
-                  ? " dBm"
-                  : selectedMetric === "latency"
-                  ? " ms"
-                  : "/5"}
-              </Text>
-            </View>
-
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryHeader}>
-                <BarChart3 color="#60a5fa" size={16} />
-                <Text style={styles.summaryLabel}>Variance</Text>
-              </View>
-              <Text style={styles.summaryValue}>
-                {(maxValue - minValue).toFixed(1)} range
-              </Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryHeader}>
-                {trendValue >= 0 ? (
-                  <TrendingUp color="#34d399" size={16} />
-                ) : (
-                  <TrendingDown color="#f87171" size={16} />
-                )}
-                <Text style={styles.summaryLabel}>Trend</Text>
-              </View>
-              <Text
-                style={[
-                  styles.summaryValue,
-                  { color: trendValue >= 0 ? "#34d399" : "#f87171" },
-                ]}
-              >
-                {trendValue >= 0 ? "+" : ""}
-                {trendValue}% change
-              </Text>
-            </View>
-          </View>
-        </View>
+          </>
+        )}
 
         <View style={styles.bottomPadding} />
       </ScrollView>
@@ -562,6 +658,15 @@ const styles = StyleSheet.create({
   },
   refreshing: {
     opacity: 0.6,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  errorText: {
+    color: "red",
   },
   scrollView: {
     flex: 1,

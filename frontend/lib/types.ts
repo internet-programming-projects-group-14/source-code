@@ -1,6 +1,5 @@
 // networkMetrics
 export type NetworkMetrics = {
-
   signalStrength: number | null;
   networkType: string | null;
   carrier: string | null;
@@ -65,3 +64,36 @@ export interface SummaryResponse {
   totalDataPoints: number;
   weekOverWeek: string;
 }
+export type QoEAnalyticsResponse = {
+  success: boolean;
+  data: {
+    userId: string;
+    period: string;
+    performanceOverview: {
+      averageQoEScore: number;
+      percentageChange: number;
+      dataPoints: number;
+    };
+    performanceSummary: {
+      peakPerformance: number;
+      lowestPerformance: number;
+      variance: number;
+      trend: number;
+    };
+    qualityTrends: {
+      data: {
+        time: string; // ISO date string
+        value: number;
+      }[];
+      max: number;
+      min: number;
+    };
+    metadata: {
+      totalMeasurements: number;
+      periodStart: string; // ISO date string
+      periodEnd: string; // ISO date string
+      comparisonPeriodStart: string; // ISO date string
+      comparisonPeriodEnd: string; // ISO date string
+    };
+  };
+};
