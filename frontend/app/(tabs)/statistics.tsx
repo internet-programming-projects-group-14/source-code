@@ -48,7 +48,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     { value: "24H", label: "24H" },
     { value: "7D", label: "7D" },
     { value: "30D", label: "30D" },
-    { value: "90D", label: "90D" },
   ];
 
   const metrics = [
@@ -444,60 +443,62 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
 
               <View style={styles.chartContainer}>
                 <View style={styles.barChartContainer}>
-                  {data.slice(0, 7).map((item, index) => {
-                    const maxVal =
-                      selectedMetric === "speed"
-                        ? getMaxValue(data, "download")
-                        : Math.max(...data.map((d) => d.value));
-                    const height =
-                      selectedMetric === "speed"
-                        ? getBarHeight(item.download, maxVal)
-                        : getBarHeight(item.value, maxVal);
+                  {currentData?.data.qualityTrends.data
+                    .slice(0, 7)
+                    .map((item, index) => {
+                      const maxVal =
+                        selectedMetric === "speed"
+                          ? getMaxValue(data, "download")
+                          : Math.max(...data.map((d) => d.value));
+                      const height =
+                        selectedMetric === "speed"
+                          ? getBarHeight(item.download, maxVal)
+                          : getBarHeight(item.value, maxVal);
 
-                    return (
-                      <View key={index} style={styles.barChartColumn}>
-                        <View style={styles.barChartBackground}>
-                          <Animated.View
-                            style={[
-                              styles.barChartBar,
-                              {
-                                height: animatedValues[index].interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: ["0%", `${height}%`],
-                                }),
-                                backgroundColor:
-                                  currentMetric?.color || "#60a5fa",
-                              },
-                            ]}
-                          />
-                          {selectedMetric === "speed" && (
+                      return (
+                        <View key={index} style={styles.barChartColumn}>
+                          <View style={styles.barChartBackground}>
                             <Animated.View
                               style={[
                                 styles.barChartBar,
                                 {
                                   height: animatedValues[index].interpolate({
                                     inputRange: [0, 1],
-                                    outputRange: [
-                                      "0%",
-                                      `${getBarHeight(item.upload, maxVal)}%`,
-                                    ],
+                                    outputRange: ["0%", `${height}%`],
                                   }),
-                                  backgroundColor: "#8b5cf6",
-                                  opacity: 0.7,
+                                  backgroundColor:
+                                    currentMetric?.color || "#60a5fa",
                                 },
                               ]}
                             />
-                          )}
+                            {selectedMetric === "speed" && (
+                              <Animated.View
+                                style={[
+                                  styles.barChartBar,
+                                  {
+                                    height: animatedValues[index].interpolate({
+                                      inputRange: [0, 1],
+                                      outputRange: [
+                                        "0%",
+                                        `${getBarHeight(item.upload, maxVal)}%`,
+                                      ],
+                                    }),
+                                    backgroundColor: "#8b5cf6",
+                                    opacity: 0.7,
+                                  },
+                                ]}
+                              />
+                            )}
+                          </View>
+                          <Text style={styles.barChartLabel}>{item.time}</Text>
+                          <Text style={styles.barChartValue}>
+                            {selectedMetric === "speed"
+                              ? item.download.toFixed(1)
+                              : item.value.toFixed(1)}
+                          </Text>
                         </View>
-                        <Text style={styles.barChartLabel}>{item.time}</Text>
-                        <Text style={styles.barChartValue}>
-                          {selectedMetric === "speed"
-                            ? item.download.toFixed(1)
-                            : item.value.toFixed(1)}
-                        </Text>
-                      </View>
-                    );
-                  })}
+                      );
+                    })}
                 </View>
 
                 {selectedMetric === "speed" && (
