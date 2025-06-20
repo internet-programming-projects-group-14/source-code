@@ -1,3 +1,5 @@
+import { getIssueTypesByRating } from "@/lib/getIssuesByRating";
+import { getOrCreateUserId } from "@/lib/identityToken";
 import { NetworkMetrics } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -33,6 +35,7 @@ export default function FeedbackPage({
   networkMetrics,
   showRatingSelection = false,
 }: FeedbackPageProps) {
+  
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
   const [feedbackText, setFeedbackText] = useState("");
   const [selectedContext, setSelectedContext] = useState<string[]>([]);
@@ -41,6 +44,7 @@ export default function FeedbackPage({
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    // const userId = await getOrCreateUserId();
 
     if (!networkMetrics) {
       console.warn("No network metrics available");
@@ -66,13 +70,13 @@ export default function FeedbackPage({
       device,
     } = networkMetrics;
 
+    const userId = "user-2456";
     const requestBody = {
+      userId: userId, // Replace with actual user ID
       feedback: {
-        userId: "user_12345", // Replace with actual user ID
         rating: selectedRating,
         contextInfo: {
-          location: location ? "Captured" : "Unknown",
-          time: new Date().toISOString(),
+          location: location ? location : "Unknown",
           situationContext: selectedContext,
         },
         specificIssues: selectedIssues.map((type) => ({ type })),
@@ -100,9 +104,11 @@ export default function FeedbackPage({
       },
     };
 
+    console.log(requestBody);
+
     try {
       const response = await fetch(
-        "https://qoe-backend-ov95.onrender.com/api/network-feedback",
+        "http://localhost:3000/api/network-feedback",
         {
           method: "POST",
           headers: {
@@ -152,50 +158,9 @@ export default function FeedbackPage({
     return ratings[rating - 1] || ratings[0];
   };
 
-  const issueTypes = [
-    {
-      id: "no-issue",
-      label: "Everything is Fine",
-      icon: "wifi-outline",
-      severity: "no",
-    },
-    {
-      id: "slow-data",
-      label: "Slow Data Speed",
-      icon: "wifi-outline",
-      severity: "high",
-    },
-    {
-      id: "call-drops",
-      label: "Call Drops/Quality",
-      icon: "call-outline",
-      severity: "high",
-    },
-    {
-      id: "poor-video",
-      label: "Video Streaming Issues",
-      icon: "videocam-outline",
-      severity: "medium",
-    },
-    {
-      id: "web-loading",
-      label: "Web Page Loading",
-      icon: "globe-outline",
-      severity: "medium",
-    },
-    {
-      id: "app-performance",
-      label: "App Performance",
-      icon: "phone-portrait-outline",
-      severity: "low",
-    },
-    {
-      id: "no-connection",
-      label: "No Connection",
-      icon: "warning-outline",
-      severity: "critical",
-    },
-  ];
+  const issueTypes = selectedRating
+    ? getIssueTypesByRating(selectedRating)
+    : getIssueTypesByRating(-1);
 
   const contextOptions = [
     { id: "indoor", label: "Indoor" },

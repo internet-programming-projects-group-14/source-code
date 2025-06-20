@@ -1,26 +1,11 @@
 // backend/index.mjs
-import "dotenv/config"; // This loads variables from .env into process.env
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import analyticsRouter from "./routes/analytics.mjs";
 import { generateUserId, generateSessionId } from "./lib/helper.mjs";
 import admin from "./firebase.mjs";
-
-// Firebase configuration from environment variables
-const serviceAccount = {
-  type: "service_account",
-  project_id: process.env.FIREBASE_PROJECT_ID,
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENT_ID,
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token",
-  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
-  universe_domain: "googleapis.com",
-};
 
 // Initialize Firestore
 const db = admin.firestore();
@@ -99,11 +84,10 @@ const validateFeedback = (req, res, next) => {
 // Main endpoint for submitting network feedback
 app.post("/api/network-feedback", validateFeedback, async (req, res) => {
   try {
-    const { feedback, technicalData, deviceInfo } = req.body;
+    const { userId, feedback, technicalData, deviceInfo } = req.body;
 
-    const userId = feedback.userId || generateUserId();
-    const sessionId = generateSessionId();
-    const feedbackId = generateSubmissionId();
+    console.log(userId, feedback, technicalData, deviceInfo);
+
     const timestamp = admin.firestore.Timestamp.now();
 
     // Store user if not exists
@@ -111,29 +95,19 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
     const userDoc = await userRef.get();
     if (!userDoc.exists) {
       await userRef.set({
-        device_info: deviceInfo,
-        language_preference: feedback.language || "en",
         permissions: feedback.permissions || [],
       });
     }
 
-    // Store session
-    const sessionRef = db.collection("sessions").doc(sessionId);
-    await sessionRef.set({
-      user_id: userId,
-      start_time: timestamp,
-      end_time: timestamp,
-    });
-
     // Store feedback
     await db
       .collection("feedback")
-      .doc(feedbackId)
+      .doc()
       .set({
-        feedback_id: feedbackId,
         user_id: userId,
         timestamp,
         rating: feedback.rating,
+        situationContext: feedback.contextInfo.situationContext,
         issue_type: feedback.specificIssues?.map((i) => i.type) || [],
         comment: feedback.additionalDetails || "",
       });
@@ -141,22 +115,24 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
     // Store signal metric
     if (technicalData) {
       await db.collection("signalMetrics").add({
-        session_id: sessionId,
+        user_id: userId,
         timestamp,
         signal_strength: technicalData.signalStrength,
         network_type: technicalData.networkType,
         operator: technicalData.carrier,
+        frequency: technicalData.frequency || "Unknown",
+        bandwidth: technicalData.bandwidth || "Unknown",
+        cell_id: technicalData.cellId || "Unknown",
+        pci: technicalData.pci || "Unknown",
+        data_speed: technicalData.dataSpeed || "Unknown",
+        upload_speed: technicalData.uploadSpeed || "Unknown",
+        latency: technicalData.latency || "Unknown",
+        is_connected: technicalData.isConnected ?? null,
+        throughput: technicalData.throughput || "Unknown",
         location: feedback.contextInfo?.location || "Unknown",
-      });
-    }
-
-    // Store location data (if available)
-    if (technicalData?.coordinates) {
-      await db.collection("locationData").add({
-        latitude: technicalData.coordinates.latitude,
-        longitude: technicalData.coordinates.longitude,
-        accuracy: technicalData.coordinates.accuracy,
-        timestamp,
+        latitude: technicalData.coordinates?.latitude || "Unknown",
+        longitude: technicalData.coordinates?.longitude || "Unknown",
+        device_info: deviceInfo,
       });
     }
 
@@ -165,8 +141,6 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      feedbackId,
-      sessionId,
       userId,
       message: "Feedback submitted and normalized successfully.",
     });
@@ -174,12 +148,12 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
     console.error("Error submitting network feedback:", error);
     res.status(500).json({
       success: false,
-      error: "Internal server error occurred",
+      error: "Internal server error",
     });
   }
 });
 
-//Moute route module
+//Mount route module
 app.use("/analytics", analyticsRouter);
 
 // Ping Google

@@ -1,5 +1,6 @@
 // firebase.js or firebase.mjs
 import admin from "firebase-admin";
+import "dotenv/config";
 
 // Firebase configuration from environment variables
 const serviceAccount = {
