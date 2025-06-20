@@ -1,31 +1,31 @@
 import { requestAndroidPermissions } from "@/lib/permissions";
 import { NetworkMetrics } from "@/lib/types";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
+import { BlurView } from "expo-blur";
 import * as Device from "expo-device";
 import * as Location from "expo-location";
 import { RelativePathString, useRouter } from "expo-router";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  AppState,
+  AppStateStatus,
+  Dimensions,
+  Modal,
   NativeModules,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  AppState,
-  Modal,
-  Animated,
-  StatusBar,
-  Dimensions,
-  AppStateStatus,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FeedbackPage from "../../components/FeedbackForm";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { BlurView } from "expo-blur";
 
 const { SignalModule } = NativeModules;
 const { width, height } = Dimensions.get("window");
@@ -515,8 +515,7 @@ export default function NetworkQoEApp() {
           </View>
         </View>
         <TouchableOpacity
-          onPress={() => router.navigate("/settings")}
-          disabled={isLoading}
+          onPress={() => router.push("/settings")}
           style={{ opacity: isLoading ? 0.5 : 1 }}
         >
           <Feather name="settings" size={24} color="#fff" />
@@ -671,7 +670,6 @@ export default function NetworkQoEApp() {
               key={item.view}
               onPress={() => router.push(`/${item.view}` as RelativePathString)}
               style={[styles.actionButton, { opacity: isLoading ? 0.5 : 1 }]}
-              disabled={isLoading}
             >
               <View style={styles.actionButtonInner}>
                 <Feather name={item.icon as any} size={18} color="#fff" />
