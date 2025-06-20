@@ -1,11 +1,15 @@
 import { Router } from "express";
-import admin from "../firebase.mjs";
+import { db, admin } from "../firebase.mjs";
 
 const router = Router();
 
 router.get("/qoe", async (req, res) => {
   try {
     const { period = "24H", userId } = req.query;
+
+    if (!userId) {
+      throw new Error("No user id found");
+    }
 
     // Calculate time ranges based on period
     const now = new Date();
@@ -58,11 +62,8 @@ router.get("/qoe", async (req, res) => {
       )
       .where("timestamp", "<", admin.firestore.Timestamp.fromDate(startTime));
 
-    // Add user filter if provided
-    if (userId) {
-      query = query.where("user_id", "==", userId);
-      previousQuery = previousQuery.where("user_id", "==", userId);
-    }
+    query = query.where("user_id", "==", userId);
+    previousQuery = previousQuery.where("user_id", "==", userId);
 
     // Execute queries
     const [currentSnapshot, previousSnapshot] = await Promise.all([
@@ -204,6 +205,7 @@ router.get("/qoe", async (req, res) => {
     const response = {
       success: true,
       data: {
+        userId,
         period,
         performanceOverview: {
           averageQoEScore: averageQoE,

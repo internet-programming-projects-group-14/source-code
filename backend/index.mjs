@@ -4,11 +4,7 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import analyticsRouter from "./routes/analytics.mjs";
-import { generateUserId, generateSessionId } from "./lib/helper.mjs";
-import admin from "./firebase.mjs";
-
-// Initialize Firestore
-const db = admin.firestore();
+import { db, admin } from "./firebase.mjs";
 
 const app = express();
 
@@ -137,7 +133,7 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
     }
 
     // Update analytics
-    await updateAnalytics(feedback);
+    updateAnalytics(feedback);
 
     res.status(201).json({
       success: true,
@@ -154,7 +150,7 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
 });
 
 //Mount route module
-app.use("/analytics", analyticsRouter);
+app.use("/api/analytics", analyticsRouter);
 
 // Ping Google
 app.get("/ping-google", async (req, res) => {
