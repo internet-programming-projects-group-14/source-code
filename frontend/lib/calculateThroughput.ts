@@ -1,10 +1,19 @@
 export async function measureThroughput() {
-  const testUrl = "https://example.com/testfile.dat"; // Replace with a real URL and file
+  const testUrl =
+    "https://github.com/internet-programming-projects-group-14/source-code/blob/main/test%20(2).jpg"; // Replace with a real URL and file
   const fileSizeBytes = 1048576; // Example: 1MB in bytes
   let startTime, endTime, downloadSize;
 
   try {
-    const response = await fetch(testUrl, { method: "GET" });
+    const response = await fetch(testUrl, {
+      method: "GET",
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
+
     if (!response.ok) throw new Error("Network response was not ok");
 
     startTime = new Date().getTime(); // Start timer
@@ -12,8 +21,10 @@ export async function measureThroughput() {
     endTime = new Date().getTime(); // End timer
     downloadSize = data.size;
 
+    console.log(startTime, endTime);
+
     const timeInSeconds = (endTime - startTime) / 1000; // Time in seconds
-    const throughputMbps = (downloadSize * 8) / timeInSeconds / 1_000_000; // Convert to Mbps
+    const throughputMbps = (downloadSize * 8) / timeInSeconds / 1000000; // Convert to Mbps
 
     return {
       throughput: throughputMbps.toFixed(2), // e.g., "5.23 Mbps"
