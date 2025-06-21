@@ -104,4 +104,3 @@ This project is part of academic coursework and does not have a formal license. 
 
 ---
 
-Let me know if you want a fancier version with badges, diagrams, or setup screenshots!
