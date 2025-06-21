@@ -31,9 +31,11 @@ if (!Constants.expoConfig?.extra?.API_URL) {
 
 const apiUrl = Constants.expoConfig.extra.API_URL;
 
+type MetricType = "qoe" | "speed" | "latency" | "signal";
+
 export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   const [selectedPeriod, setSelectedPeriod] = useState("24H");
-  const [selectedMetric, setSelectedMetric] = useState("qoe");
+  const [selectedMetric, setSelectedMetric] = useState<MetricType>("qoe");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,38 +59,50 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     { value: "latency", label: "Latency", icon: Clock, color: "#f59e0b" },
   ];
 
-  const fetchQoEData = async () => {
+  // Map metric values to their corresponding API endpoints
+  const metricEndpoints = {
+    qoe: "qoe",
+    speed: "throughput",
+    signal: "rf-quality",
+    latency: "latency",
+  };
+
+  // Reusable function to fetch analytics data
+  const fetchAnalyticsData = async (userId = null) => {
     try {
-      const response = await fetch(
-        `${apiUrl}/api/analytics/qoe?period=${selectedPeriod}&userId=user-2456`
-      );
+      setLoading(true);
+      setError(null);
+
+      // Validate metric type
+      if (!metricEndpoints[selectedMetric]) {
+        throw new Error(`Invalid metric type: ${selectedMetric}`);
+      }
+
+      // Build URL with parameters
+      const endpoint = metricEndpoints[selectedMetric];
+      let url = `${apiUrl}/api/analytics/${endpoint}?period=${selectedPeriod}&userId=user-2456`;
+
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const json = await response.json();
-      console.log(json);
+
       setCurrentData(json);
+      return json;
     } catch (err) {
-      setError(err.message || "Something went wrong");
+      const errorMessage = err.message || "Something went wrong";
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  
-
   useEffect(() => {
-    switch (selectedMetric) {
-      case "qoe":
-        fetchQoEData();
-        break;
-
-      default:
-        console.log("Sorry wrong selection");
-        break;
-    }
+    fetchAnalyticsData();
   }, [selectedMetric, selectedPeriod]);
 
   // Dynamic data generation based on period and metric
@@ -177,35 +191,9 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     return (value / maxValue) * 100;
   };
 
-  const calculateAverage = (data: any[], key: string) => {
-    return data.reduce((sum, item) => sum + item[key], 0) / data.length;
-  };
-
-  const calculateTrend = (data: any[]) => {
-    if (data.length < 2) return 0;
-    const recent =
-      data.slice(-3).reduce((sum, item) => sum + item.value, 0) / 3;
-    const previous =
-      data.slice(0, 3).reduce((sum, item) => sum + item.value, 0) / 3;
-    return parseFloat((((recent - previous) / previous) * 100).toFixed(1));
-  };
 
   const currentMetric = metrics.find((m) => m.value === selectedMetric);
-  const averageValue = calculateAverage(
-    data,
-    selectedMetric === "speed" ? "download" : "value"
-  );
-  const trendValue = calculateTrend(data);
-  const maxValue = Math.max(
-    ...data.map((item) =>
-      selectedMetric === "speed" ? item.download : item.value
-    )
-  );
-  const minValue = Math.min(
-    ...data.map((item) =>
-      selectedMetric === "speed" ? item.download : item.value
-    )
-  );
+ 
 
   if (error) {
     return (
