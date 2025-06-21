@@ -17,10 +17,9 @@ export async function measureThroughput() {
 
     return {
       throughput: throughputMbps.toFixed(2), // e.g., "5.23 Mbps"
-      estimatedBandwidth: throughputMbps.toFixed(2), // As an estimate
     };
   } catch (error) {
     console.error("Error measuring throughput:", error);
-    return { throughput: null, estimatedBandwidth: null };
+    return { throughput: null };
   }
 }
