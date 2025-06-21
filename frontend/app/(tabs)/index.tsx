@@ -597,11 +597,7 @@ export default function NetworkQoEApp() {
         >
           <Feather name="settings" size={24} color="#fff" />
         </TouchableOpacity>
-      </View><TouchableOpacity 
-  onPress={async () => await triggerPopup('periodic')}
->
-  <Text>Test Notification</Text>
-</TouchableOpacity>
+      </View>
 
       <ScrollView>
         {error && !isLoading && <ErrorCard />}
