@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": ["remote-notification", "background-fetch"]
       }
     },
     "android": {
@@ -20,7 +20,11 @@
         "READ_PHONE_STATE",
         "RECEIVE_BOOT_COMPLETED",
         "FOREGROUND_SERVICE",
-        "WAKE_LOCK"
+        "WAKE_LOCK",
+        "VIBRATE",
+        "SCHEDULE_EXACT_ALARM",
+        "SYSTEM_ALERT_WINDOW",
+        "ACCESS_BACKGROUND_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -56,6 +60,9 @@
           "sounds": [],
           "mode": "production"
         }
+      ],
+      [
+        "expo-task-manager"
       ]
     ],
     "experiments": {
