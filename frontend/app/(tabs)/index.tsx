@@ -6,6 +6,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { BlurView } from "expo-blur";
 import * as Device from "expo-device";
 import * as Location from "expo-location";
+import * as Notifications from 'expo-notifications';
 import { RelativePathString, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -29,6 +30,17 @@ import FeedbackPage from "../../components/FeedbackForm";
 
 const { SignalModule } = NativeModules;
 const { width, height } = Dimensions.get("window");
+
+// Configure notifications
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+    shouldShowBanner: false,
+    shouldShowList:false
+  }),
+});
 
 // QoE Popup Component
 const QoEPopup: React.FC<{
@@ -171,10 +183,43 @@ export default function NetworkQoEApp() {
   const signalCheckTimerRef = useRef<number | null>(null);
 
   const config = {
-    periodicInterval: 3000000, // 4 hours
+    periodicInterval: 1* 60 * 1000, // 4 hours (4 * 60 minutes * 60 seconds * 1000 milliseconds)
     signalThreshold: -85, // dBm threshold for poor signal
-    minTimeBetweenPopups: 10000, // 30 minutes between popups
+    minTimeBetweenPopups: 30 * 1000, // 30 minutes between popups (30 * 60 seconds * 1000 milliseconds)
+    notificationDelayMinutes: 0.1, // Show notification 5 minutes after trigger
   };
+
+  // Initialize notifications
+  useEffect(() => {
+    const setupNotifications = async () => {
+      await Notifications.requestPermissionsAsync();
+      
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('qoe-feedback', {
+          name: 'QoE Feedback',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#3b82f6',
+        });
+      }
+    };
+
+    setupNotifications();
+
+    const notificationSubscription = Notifications.addNotificationResponseReceivedListener(
+      response => {
+        const { reason } = response.notification.request.content.data;
+        if (reason === 'periodic' || reason === 'signal') {
+          setPopupTriggerReason(reason);
+          setShouldShowPopup(true);
+        }
+      }
+    );
+
+    return () => {
+      notificationSubscription.remove();
+    };
+  }, []);
 
   // Check if enough time has passed since last popup
   const canShowPopup = async (): Promise<boolean> => {
@@ -204,13 +249,45 @@ export default function NetworkQoEApp() {
     }
   };
 
+  // Schedule a notification for background state
+  const scheduleNotification = async (reason: "periodic" | "signal") => {
+    try {
+      const title = reason === 'signal' 
+        ? '📶 Poor Network Detected' 
+        : '📶 Rate Your Network Quality';
+      
+      const body = reason === 'signal'
+        ? 'How is your network experience right now?'
+        : 'Help us improve by rating your recent connection quality';
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: { type: 'qoe-feedback', reason },
+        },
+        trigger: { 
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: config.notificationDelayMinutes * 60 
+        },
+      });
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+    }
+  };
+
   // Trigger popup with reason
   const triggerPopup = async (reason: "periodic" | "signal"): Promise<void> => {
     const canShow = await canShowPopup();
-    if (canShow) {
+    if (!canShow) return;
+
+    await recordPopupShown();
+    
+    if (appState.current === 'active') {
       setPopupTriggerReason(reason);
       setShouldShowPopup(true);
-      await recordPopupShown();
+    } else {
+      await scheduleNotification(reason);
     }
   };
 
@@ -520,7 +597,11 @@ export default function NetworkQoEApp() {
         >
           <Feather name="settings" size={24} color="#fff" />
         </TouchableOpacity>
-      </View>
+      </View><TouchableOpacity 
+  onPress={async () => await triggerPopup('periodic')}
+>
+  <Text>Test Notification</Text>
+</TouchableOpacity>
 
       <ScrollView>
         {error && !isLoading && <ErrorCard />}
