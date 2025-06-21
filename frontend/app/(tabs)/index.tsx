@@ -33,6 +33,7 @@ import {
   storeSignalStrength,
   unregisterBackgroundTasks,
 } from "../../services/backgroundTaskService";
+import { measureThroughput } from "@/lib/calculateThroughput";
 
 const { SignalModule } = NativeModules;
 const { width, height } = Dimensions.get("window");
@@ -462,8 +463,13 @@ export default function NetworkQoEApp() {
             pci: null,
           };
 
+
+          console.log(signalData)
+
       // Connection & throughput
       const netInfo = await NetInfo.fetch();
+
+      const throughput = await measureThroughput();
 
       // Latency
       const start = Date.now();
@@ -476,7 +482,7 @@ export default function NetworkQoEApp() {
 
       const finalMetrics: NetworkMetrics = {
         signalStrength: signalData.signalStrength || null,
-        networkType: signalData.networkType || netInfo.type,
+        networkType: signalData.type || netInfo.type,
         carrier: netInfo.details?.carrier || null,
         frequency: signalData.frequency || null,
         bandwidth: signalData.bandwidth || null,
@@ -488,7 +494,7 @@ export default function NetworkQoEApp() {
         latency,
         isConnected: netInfo.isConnected,
 
-        throughput: netInfo.details || null,
+        throughput: throughput,
         location: locationData,
 
         device: {
