@@ -465,7 +465,7 @@ router.get("/rf-quality", async (req, res) => {
                   signals.reduce((sum, s) => sum + s, 0) / signals.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         trendsData.push({
           time: `${hour}:00`,
@@ -484,7 +484,7 @@ router.get("/rf-quality", async (req, res) => {
                   signals.reduce((sum, s) => sum + s, 0) / signals.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         const date = new Date(startTime.getTime() + day * 24 * 60 * 60 * 1000);
         trendsData.push({
@@ -505,7 +505,7 @@ router.get("/rf-quality", async (req, res) => {
                   signals.reduce((sum, s) => sum + s, 0) / signals.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         trendsData.push({
           time: day,
@@ -787,7 +787,7 @@ router.get("/latency", async (req, res) => {
                   latencies.reduce((sum, l) => sum + l, 0) / latencies.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         trendsData.push({
           time: `${hour}:00`,
@@ -806,7 +806,7 @@ router.get("/latency", async (req, res) => {
                   latencies.reduce((sum, l) => sum + l, 0) / latencies.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         const date = new Date(startTime.getTime() + day * 24 * 60 * 60 * 1000);
         trendsData.push({
@@ -827,7 +827,7 @@ router.get("/latency", async (req, res) => {
                   latencies.reduce((sum, l) => sum + l, 0) / latencies.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         trendsData.push({
           time: day,
