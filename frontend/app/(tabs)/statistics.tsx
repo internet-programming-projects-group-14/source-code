@@ -60,6 +60,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   ];
 
   // Map metric values to their corresponding API endpoints
+  // Could stillmake names homogeneouss
   const metricEndpoints = {
     qoe: "qoe",
     speed: "throughput",
@@ -82,6 +83,8 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
       const endpoint = metricEndpoints[selectedMetric];
       let url = `${apiUrl}/api/analytics/${endpoint}?period=${selectedPeriod}&userId=user-2456`;
 
+      console.log(url);
+
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -91,11 +94,9 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
       const json = await response.json();
 
       setCurrentData(json);
-      return json;
     } catch (err) {
       const errorMessage = err.message || "Something went wrong";
       setError(errorMessage);
-      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -103,55 +104,8 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     fetchAnalyticsData();
+    animateBars();
   }, [selectedMetric, selectedPeriod]);
-
-  // Dynamic data generation based on period and metric
-  const generateData = (period: string, metric: string) => {
-    const dataPoints =
-      period === "24h" ? 24 : period === "7d" ? 7 : period === "30d" ? 30 : 90;
-    const baseValue =
-      metric === "qoe"
-        ? 4
-        : metric === "speed"
-        ? 45
-        : metric === "signal"
-        ? -70
-        : 25;
-    const variance =
-      metric === "qoe"
-        ? 1
-        : metric === "speed"
-        ? 15
-        : metric === "signal"
-        ? 20
-        : 10;
-
-    return Array.from({ length: dataPoints }, (_, i) => {
-      const timeLabel =
-        period === "24h"
-          ? `${i}:00`
-          : period === "7d"
-          ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i % 7]
-          : period === "30d"
-          ? `Day ${i + 1}`
-          : `Week ${Math.floor(i / 7) + 1}`;
-
-      const value = baseValue + (Math.random() - 0.5) * variance;
-      const change = (Math.random() - 0.5) * (variance / 5);
-
-      return {
-        time: timeLabel,
-        value: parseFloat(value.toFixed(1)),
-        change: parseFloat(change.toFixed(1)),
-        download: metric === "speed" ? parseFloat(value.toFixed(1)) : 0,
-        upload: metric === "speed" ? parseFloat((value * 0.3).toFixed(1)) : 0,
-      };
-    });
-  };
-
-  const [data, setData] = useState(() =>
-    generateData(selectedPeriod, selectedMetric)
-  );
 
   // Animation for bars
   const animateBars = () => {
@@ -170,30 +124,17 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    const newData = generateData(selectedPeriod, selectedMetric);
-    setData(newData);
+    fetchAnalyticsData();
+
     animateBars();
     setIsRefreshing(false);
-  };
-
-  // Update data when period or metric changes
-  useEffect(() => {
-    const newData = generateData(selectedPeriod, selectedMetric);
-    setData(newData);
-    animateBars();
-  }, [selectedPeriod, selectedMetric]);
-
-  const getMaxValue = (data: any[], key: string) => {
-    return Math.max(...data.map((item) => item[key]));
   };
 
   const getBarHeight = (value: number, maxValue: number) => {
     return (value / maxValue) * 100;
   };
 
-
   const currentMetric = metrics.find((m) => m.value === selectedMetric);
- 
 
   if (error) {
     return (
@@ -372,7 +313,9 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                           { borderColor: metric.color },
                         ],
                       ]}
-                      onPress={() => setSelectedMetric(metric.value)}
+                      onPress={() =>
+                        setSelectedMetric(metric.value as MetricType)
+                      }
                     >
                       <View
                         style={[
@@ -419,13 +362,13 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                   <Text style={styles.chartStat}>
                     Max:{" "}
                     <Text style={styles.chartStatValue}>
-                      {currentData?.data.qualityTrends.max}
+                      {currentData?.data.trends.max}
                     </Text>
                   </Text>
                   <Text style={styles.chartStat}>
                     Min:{" "}
                     <Text style={styles.chartStatValue}>
-                      {currentData?.data.qualityTrends.min}
+                      {currentData?.data.trends.min}
                     </Text>
                   </Text>
                 </View>
@@ -433,17 +376,11 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
 
               <View style={styles.chartContainer}>
                 <View style={styles.barChartContainer}>
-                  {currentData?.data.qualityTrends.data
+                  {currentData?.data.trends.data
                     .slice(0, 7)
                     .map((item, index) => {
-                      const maxVal =
-                        selectedMetric === "speed"
-                          ? getMaxValue(data, "download")
-                          : Math.max(...data.map((d) => d.value));
-                      const height =
-                        selectedMetric === "speed"
-                          ? getBarHeight(item.download, maxVal)
-                          : getBarHeight(item.value, maxVal);
+                      const maxVal = currentData.data.trends.max;
+                      const height = getBarHeight(item.value, maxVal);
 
                       return (
                         <View key={index} style={styles.barChartColumn}>
@@ -470,7 +407,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                                       inputRange: [0, 1],
                                       outputRange: [
                                         "0%",
-                                        `${getBarHeight(item.upload, maxVal)}%`,
+                                        `${getBarHeight(item.value, maxVal)}%`,
                                       ],
                                     }),
                                     backgroundColor: "#8b5cf6",
@@ -483,7 +420,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                           <Text style={styles.barChartLabel}>{item.time}</Text>
                           <Text style={styles.barChartValue}>
                             {selectedMetric === "speed"
-                              ? item.download.toFixed(1)
+                              ? item.value.toFixed(1)
                               : item.value.toFixed(1)}
                           </Text>
                         </View>
