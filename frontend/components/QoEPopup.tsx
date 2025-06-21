@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+// components/QoEPopup.tsx
+import React from 'react';
 import {
   Modal,
   View,
@@ -27,17 +28,17 @@ export const QoEPopup: React.FC<QoEPopupProps> = ({
   onEmojiSelect,
   triggerReason,
 }) => {
-  const scaleValue = useRef(new Animated.Value(0)).current;
-  const opacityValue = useRef(new Animated.Value(0)).current;
+  const scaleValue = React.useRef(new Animated.Value(0)).current;
+  const opacityValue = React.useRef(new Animated.Value(0)).current;
 
   const getMessage = (): string => {
     switch (triggerReason) {
       case 'signal':
-        return '📶 Poor signal detected - How\'s your network experience?';
+        return 'We detected poor network conditions. How was your experience?';
       case 'periodic':
-        return '📶 Rate your QoE - Help us improve network quality';
+        return 'Help us improve by rating your recent network quality';
       default:
-        return '📶 Rate your network experience';
+        return 'Rate your network experience';
     }
   };
 
@@ -102,21 +103,18 @@ export const QoEPopup: React.FC<QoEPopupProps> = ({
             },
           ]}
         >
-          {/* Close Button */}
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Feather name="x" size={20} color="#6b7280" />
           </TouchableOpacity>
 
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <Feather name="activity" size={24} color="#3b82f6" />
             </View>
-            <Text style={styles.title}>Network QoE</Text>
+            <Text style={styles.title}>Network Feedback</Text>
             <Text style={styles.message}>{getMessage()}</Text>
           </View>
 
-          {/* Emoji Rating */}
           <View style={styles.emojiContainer}>
             {emojiOptions.map((option) => (
               <TouchableOpacity
@@ -133,7 +131,6 @@ export const QoEPopup: React.FC<QoEPopupProps> = ({
             ))}
           </View>
 
-          {/* Footer */}
           <Text style={styles.footer}>
             Your feedback helps improve network quality for everyone
           </Text>

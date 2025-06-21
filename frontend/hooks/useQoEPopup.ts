@@ -1,13 +1,16 @@
+// hooks/useQoEPopup.ts
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
 import { AppState, AppStateStatus } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
+import { setupNotificationChannel, scheduleQoENotification,
+  cancelAllQoENotifications,
+  requestNotificationPermissions } from '@/services/notificationServices';
 
 interface QoEPopupConfig {
-  periodicInterval: number; // in milliseconds (4 hours = 14400000)
-  signalThreshold: number; // dBm threshold for poor signal
-  minTimeBetweenPopups: number; // minimum time between popups
+  periodicInterval: number;
+  signalThreshold: number;
+  minTimeBetweenPopups: number;
+  notificationDelayMinutes?: number;
 }
 
 interface UseQoEPopupReturn {
@@ -19,8 +22,9 @@ interface UseQoEPopupReturn {
 
 const DEFAULT_CONFIG: QoEPopupConfig = {
   periodicInterval: 4 * 60 * 60 * 1000, // 4 hours
-  signalThreshold: -85, // dBm - considered poor signal
-  minTimeBetweenPopups: 30 * 60 * 1000, // 30 minutes minimum between popups
+  signalThreshold: -85, // dBm
+  minTimeBetweenPopups: 30 * 60 * 1000, // 30 minutes
+  notificationDelayMinutes: 5, // Show notification 5 minutes after trigger
 };
 
 const STORAGE_KEYS = {
@@ -42,26 +46,31 @@ export const useQoEPopup = (
   const periodicTimerRef = useRef<number | null>(null);
   const signalCheckTimerRef = useRef<number | null>(null);
 
-  // Check if enough time has passed since last popup
+  // Initialize notification handler
+  useEffect(() => {
+    setupNotificationChannel();
+    requestNotificationPermissions();
+    
+    return () => {
+      cancelAllQoENotifications();
+    };
+  }, []);
+
   const canShowPopup = async (): Promise<boolean> => {
     try {
       const lastPopupTime = await AsyncStorage.getItem(STORAGE_KEYS.LAST_POPUP_TIME);
       if (!lastPopupTime) return true;
       
-      const timeSinceLastPopup = Date.now() - parseInt(lastPopupTime, 10);
-      return timeSinceLastPopup >= fullConfig.minTimeBetweenPopups;
+      return Date.now() - parseInt(lastPopupTime, 10) >= fullConfig.minTimeBetweenPopups;
     } catch (error) {
       console.error('Error checking popup eligibility:', error);
       return true;
     }
   };
 
-  // Record popup shown time
   const recordPopupShown = async (): Promise<void> => {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.LAST_POPUP_TIME, Date.now().toString());
-      
-      // Increment popup count for analytics
       const currentCount = await AsyncStorage.getItem(STORAGE_KEYS.POPUP_COUNT);
       const newCount = currentCount ? parseInt(currentCount, 10) + 1 : 1;
       await AsyncStorage.setItem(STORAGE_KEYS.POPUP_COUNT, newCount.toString());
@@ -70,17 +79,20 @@ export const useQoEPopup = (
     }
   };
 
-  // Trigger popup with reason
   const triggerPopup = async (reason: 'periodic' | 'signal'): Promise<void> => {
     const canShow = await canShowPopup();
-    if (canShow) {
+    if (!canShow) return;
+
+    await recordPopupShown();
+    
+    if (appState.current === 'active') {
       setPopupTriggerReason(reason);
       setShouldShowPopup(true);
-      await recordPopupShown();
+    } else {
+      await scheduleQoENotification(reason, fullConfig.notificationDelayMinutes);
     }
   };
 
-  // Check for poor signal strength
   const checkSignalStrength = async (): Promise<void> => {
     if (signalStrength !== null && signalStrength < fullConfig.signalThreshold) {
       console.log(`Poor signal detected: ${signalStrength} dBm`);
@@ -88,11 +100,9 @@ export const useQoEPopup = (
     }
   };
 
-  // Setup periodic timer
   const setupPeriodicTimer = (): void => {
     if (periodicTimerRef.current !== null) {
       clearInterval(periodicTimerRef.current);
-      periodicTimerRef.current = null;
     }
 
     periodicTimerRef.current = setInterval(async () => {
@@ -101,14 +111,11 @@ export const useQoEPopup = (
     }, fullConfig.periodicInterval) as unknown as number;
   };
 
-  // Setup signal monitoring
   const setupSignalMonitoring = (): void => {
     if (signalCheckTimerRef.current !== null) {
       clearInterval(signalCheckTimerRef.current);
-      signalCheckTimerRef.current = null;
     }
 
-    // Check signal every 30 seconds when app is active
     signalCheckTimerRef.current = setInterval(async () => {
       if (appState.current === 'active') {
         await checkSignalStrength();
@@ -116,17 +123,14 @@ export const useQoEPopup = (
     }, 30000) as unknown as number;
   };
 
-  // Handle app state changes
   const handleAppStateChange = (nextAppState: AppStateStatus): void => {
     if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App has come to the foreground');
-      // Check if we should show popup based on time elapsed
+      console.log('App came to foreground');
       checkPeriodicTrigger();
     }
     appState.current = nextAppState;
   };
 
-  // Check if periodic popup should be triggered based on elapsed time
   const checkPeriodicTrigger = async (): Promise<void> => {
     try {
       const lastPopupTime = await AsyncStorage.getItem(STORAGE_KEYS.LAST_POPUP_TIME);
@@ -134,9 +138,7 @@ export const useQoEPopup = (
         await triggerPopup('periodic');
         return;
       }
-
-      const timeSinceLastPopup = Date.now() - parseInt(lastPopupTime, 10);
-      if (timeSinceLastPopup >= fullConfig.periodicInterval) {
+      if (Date.now() - parseInt(lastPopupTime, 10) >= fullConfig.periodicInterval) {
         await triggerPopup('periodic');
       }
     } catch (error) {
@@ -144,13 +146,11 @@ export const useQoEPopup = (
     }
   };
 
-  // Dismiss popup
   const dismissPopup = (): void => {
     setShouldShowPopup(false);
     setPopupTriggerReason(null);
   };
 
-  // Handle emoji rating selection
   const handleEmojiRating = (rating: number): void => {
     if (popupTriggerReason) {
       onRatingSelected(rating, popupTriggerReason);
@@ -158,32 +158,23 @@ export const useQoEPopup = (
     dismissPopup();
   };
 
-  // Setup everything on mount
   useEffect(() => {
-    // Setup app state listener
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-    // Setup timers
     setupPeriodicTimer();
     setupSignalMonitoring();
-
-    // Initial check when component mounts
     checkPeriodicTrigger();
 
     return () => {
-      subscription?.remove();
+      subscription.remove();
       if (periodicTimerRef.current !== null) {
         clearInterval(periodicTimerRef.current);
-        periodicTimerRef.current = null;
       }
       if (signalCheckTimerRef.current !== null) {
         clearInterval(signalCheckTimerRef.current);
-        signalCheckTimerRef.current = null;
       }
     };
   }, []);
 
-  // Monitor signal strength changes
   useEffect(() => {
     if (signalStrength !== null) {
       checkSignalStrength();
