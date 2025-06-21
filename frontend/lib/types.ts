@@ -80,7 +80,7 @@ export type QoEAnalyticsResponse = {
       variance: number;
       trend: number;
     };
-    qualityTrends: {
+    trends: {
       data: {
         time: string; // ISO date string
         value: number;

@@ -6,7 +6,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { BlurView } from "expo-blur";
 import * as Device from "expo-device";
 import * as Location from "expo-location";
-import * as Notifications from 'expo-notifications';
+import * as Notifications from "expo-notifications";
 import { RelativePathString, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -27,11 +27,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FeedbackPage from "../../components/FeedbackForm";
-import { 
-  registerBackgroundTasks, 
-  unregisterBackgroundTasks, 
+import {
+  getBackgroundTaskStatus,
+  registerBackgroundTasks,
   storeSignalStrength,
-  getBackgroundTaskStatus 
+  unregisterBackgroundTasks,
 } from "../../services/backgroundTaskService";
 
 const { SignalModule } = NativeModules;
@@ -178,7 +178,8 @@ export default function NetworkQoEApp() {
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] =
     useState<Location.LocationGeocodedAddress | null>(null);
-  const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>('Unknown');
+  const [backgroundTaskStatus, setBackgroundTaskStatus] =
+    useState<string>("Unknown");
 
   // QoE Popup state
   const [shouldShowPopup, setShouldShowPopup] = useState(false);
@@ -195,33 +196,34 @@ export default function NetworkQoEApp() {
   // Notification permission and setup functions
   const requestNotificationPermissions = async (): Promise<boolean> => {
     try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
+
+      if (existingStatus !== "granted") {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      
-      console.log('Notification permission status:', finalStatus);
-      return finalStatus === 'granted';
+
+      console.log("Notification permission status:", finalStatus);
+      return finalStatus === "granted";
     } catch (error) {
-      console.error('Error requesting notification permissions:', error);
+      console.error("Error requesting notification permissions:", error);
       return false;
     }
   };
 
   const setupNotificationChannel = async () => {
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('qoe-feedback', {
-        name: 'QoE Feedback',
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("qoe-feedback", {
+        name: "QoE Feedback",
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#3b82f6',
-        sound: 'default',
+        lightColor: "#3b82f6",
+        sound: "default",
         enableVibrate: true,
       });
-      console.log('Android notification channel created');
+      console.log("Android notification channel created");
     }
   };
 
@@ -230,49 +232,49 @@ export default function NetworkQoEApp() {
     const setupNotifications = async () => {
       try {
         const hasPermission = await requestNotificationPermissions();
-        console.log('Notification permission granted:', hasPermission);
-        
+        console.log("Notification permission granted:", hasPermission);
+
         if (hasPermission) {
           await setupNotificationChannel();
-          
+
           // Register background tasks
           await registerBackgroundTasks();
-          
+
           // Get background task status
           const status = await getBackgroundTaskStatus();
-          setBackgroundTaskStatus(`Notification: ${status.notificationTask}, Signal: ${status.signalTask}`);
-          console.log('Background task status:', status);
+          setBackgroundTaskStatus(
+            `Notification: ${status.notificationTask}, Signal: ${status.signalTask}`
+          );
+          console.log("Background task status:", status);
         }
       } catch (error) {
-        console.error('Error setting up notifications:', error);
+        console.error("Error setting up notifications:", error);
       }
     };
 
     setupNotifications();
 
     // Listen for notification responses
-    const notificationSubscription = Notifications.addNotificationResponseReceivedListener(
-      response => {
-        console.log('Notification response received:', response);
+    const notificationSubscription =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log("Notification response received:", response);
         const { reason } = response.notification.request.content.data;
-        if (reason === 'periodic' || reason === 'signal') {
+        if (reason === "periodic" || reason === "signal") {
           setPopupTriggerReason(reason);
           setShouldShowPopup(true);
         }
-      }
-    );
+      });
 
     // Listen for notifications received while app is in foreground
-    const foregroundSubscription = Notifications.addNotificationReceivedListener(
-      notification => {
-        console.log('Notification received in foreground:', notification);
+    const foregroundSubscription =
+      Notifications.addNotificationReceivedListener((notification) => {
+        console.log("Notification received in foreground:", notification);
         const { reason } = notification.request.content.data;
-        if (reason === 'periodic' || reason === 'signal') {
+        if (reason === "periodic" || reason === "signal") {
           setPopupTriggerReason(reason);
           setShouldShowPopup(true);
         }
-      }
-    );
+      });
 
     return () => {
       notificationSubscription.remove();
@@ -320,57 +322,64 @@ export default function NetworkQoEApp() {
     try {
       const hasPermission = await requestNotificationPermissions();
       if (!hasPermission) {
-        console.log('Cannot schedule notification - no permission');
+        console.log("Cannot schedule notification - no permission");
         return;
       }
 
-      const title = reason === 'signal' 
-        ? '📶 Poor Network Detected' 
-        : '📶 Rate Your Network Quality';
-      
-      const body = reason === 'signal'
-        ? 'How is your network experience right now?'
-        : 'Help us improve by rating your recent connection quality';
+      const title =
+        reason === "signal"
+          ? "📶 Poor Network Detected"
+          : "📶 Rate Your Network Quality";
+
+      const body =
+        reason === "signal"
+          ? "How is your network experience right now?"
+          : "Help us improve by rating your recent connection quality";
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title,
           body,
-          data: { type: 'qoe-feedback', reason },
-          sound: 'default',
+          data: { type: "qoe-feedback", reason },
+          sound: "default",
         },
         trigger: null, // Show immediately
       });
 
-      console.log('Notification scheduled:', notificationId, 'for reason:', reason);
+      console.log(
+        "Notification scheduled:",
+        notificationId,
+        "for reason:",
+        reason
+      );
     } catch (error) {
-      console.error('Error scheduling notification:', error);
+      console.error("Error scheduling notification:", error);
     }
   };
 
   // Test notification function
   const testNotification = async () => {
-    console.log('Testing notification...');
-    await scheduleNotification('periodic');
+    console.log("Testing notification...");
+    await scheduleNotification("periodic");
   };
 
   // Trigger popup with reason (now mainly for foreground use)
   const triggerPopup = async (reason: "periodic" | "signal"): Promise<void> => {
-    console.log('Triggering popup for reason:', reason);
+    console.log("Triggering popup for reason:", reason);
     const canShow = await canShowPopup();
     if (!canShow) {
-      console.log('Cannot show popup - too soon since last one');
+      console.log("Cannot show popup - too soon since last one");
       return;
     }
 
     await recordPopupShown();
-    
-    if (appState.current === 'active') {
-      console.log('App is active - showing popup directly');
+
+    if (appState.current === "active") {
+      console.log("App is active - showing popup directly");
       setPopupTriggerReason(reason);
       setShouldShowPopup(true);
     } else {
-      console.log('App is in background - background task will handle this');
+      console.log("App is in background - background task will handle this");
       // Background tasks will handle notifications when app is not active
     }
   };
@@ -383,9 +392,11 @@ export default function NetworkQoEApp() {
     ) {
       // Store signal strength for background monitoring
       await storeSignalStrength(networkMetrics.signalStrength);
-      
+
       if (networkMetrics.signalStrength < config.signalThreshold) {
-        console.log(`Poor signal detected: ${networkMetrics.signalStrength} dBm`);
+        console.log(
+          `Poor signal detected: ${networkMetrics.signalStrength} dBm`
+        );
         await triggerPopup("signal");
       }
     }
@@ -393,8 +404,8 @@ export default function NetworkQoEApp() {
 
   // Handle app state changes
   const handleAppStateChange = (nextAppState: AppStateStatus): void => {
-    console.log('App state changed from', appState.current, 'to', nextAppState);
-    
+    console.log("App state changed from", appState.current, "to", nextAppState);
+
     if (
       appState.current.match(/inactive|background/) &&
       nextAppState === "active"
@@ -402,7 +413,7 @@ export default function NetworkQoEApp() {
       console.log("App has come to the foreground");
       // Background tasks are now handling notifications, so we don't need to check here
     }
-    
+
     appState.current = nextAppState;
   };
 
@@ -625,7 +636,7 @@ export default function NetworkQoEApp() {
             </Text>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flexDirection: "row", gap: 10 }}>
           {/* Test Notification Button */}
           <TouchableOpacity
             onPress={testNotification}
