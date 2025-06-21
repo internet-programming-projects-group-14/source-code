@@ -645,11 +645,11 @@ export default function NetworkQoEApp() {
       <ScrollView>
         {error && !isLoading && <ErrorCard />}
 
-        {/* Background Task Status Card */}
+        {/* Background Task Status Card
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Background Tasks Status</Text>
           <Text style={styles.detailItem}>{backgroundTaskStatus}</Text>
-        </View>
+        </View> */}
 
         {isLoading ? (
           <LoadingCard title="Network Analysis" />
