@@ -1,8 +1,8 @@
+import { measureThroughput } from "@/lib/calculateThroughput";
 import { requestAndroidPermissions } from "@/lib/permissions";
 import { NetworkMetrics } from "@/lib/types";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import NetInfo from "@react-native-community/netinfo";
 import { BlurView } from "expo-blur";
 import * as Device from "expo-device";
 import * as Location from "expo-location";
@@ -33,7 +33,6 @@ import {
   storeSignalStrength,
   unregisterBackgroundTasks,
 } from "../../services/backgroundTaskService";
-import { measureThroughput } from "@/lib/calculateThroughput";
 
 const { SignalModule } = NativeModules;
 const { width, height } = Dimensions.get("window");
@@ -453,23 +452,16 @@ export default function NetworkQoEApp() {
       // Signal metrics from native module
       const signalData = SignalModule?.getNetworkMetrics
         ? await SignalModule.getNetworkMetrics()
-        : {
-            signalStrength: null,
-            networkType: null,
-            carrier: null,
-            frequency: null,
-            bandwidth: null,
-            cellId: null,
-            pci: null,
-          };
+        : null;
 
+      const cellInfo = signalData.cellInfo[0];
 
-          console.log(signalData)
+      // console.log(signalData);
+      // console.log("Cell data", cellInfo);
 
       // Connection & throughput
-      const netInfo = await NetInfo.fetch();
-
       const throughput = await measureThroughput();
+      console.log("Throughput", throughput);
 
       // Latency
       const start = Date.now();
@@ -481,18 +473,18 @@ export default function NetworkQoEApp() {
       const latency = Date.now() - start;
 
       const finalMetrics: NetworkMetrics = {
-        signalStrength: signalData.signalStrength || null,
-        networkType: signalData.type || netInfo.type,
-        carrier: netInfo.details?.carrier || null,
-        frequency: signalData.frequency || null,
-        bandwidth: signalData.bandwidth || null,
-        cellId: signalData.cellId || null,
-        pci: signalData.pci || null,
+        signalStrength: cellInfo.signalStrength || null,
+        networkType: cellInfo.type || null,
+        carrier: signalData.simCarrierName || null,
+        frequency: cellInfo.earfcn || null,
+        bandwidth: cellInfo.bandwidth || null,
+        cellId: cellInfo.cellId || null,
+        pci: cellInfo.pci || null,
 
         dataSpeed: null,
         uploadSpeed: null,
         latency,
-        isConnected: netInfo.isConnected,
+        isConnected: true,
 
         throughput: throughput,
         location: locationData,
