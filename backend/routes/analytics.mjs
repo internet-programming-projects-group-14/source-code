@@ -258,7 +258,7 @@ router.get("/qoe", async (req, res) => {
           variance: variance,
           trend: percentageChange,
         },
-        qualityTrends: {
+        trends: {
           data: trendsData,
           max: parseFloat(maxRating.toFixed(1)),
           min: parseFloat(minRating.toFixed(1)),
@@ -539,7 +539,7 @@ router.get("/rf-quality", async (req, res) => {
           trend: percentageChange,
           unit: "dBm",
         },
-        rfSignalTrends: {
+        trends: {
           data: trendsData,
           max: parseFloat(chartMax.toFixed(1)),
           min: parseFloat(chartMin.toFixed(1)),
@@ -608,7 +608,7 @@ function categorizeLatencyQuality(latencyValues) {
 
 // Latency analytics
 
-app.get("/api/analytics/latency", async (req, res) => {
+router.get("/latency", async (req, res) => {
   try {
     const { period = "24H", userId } = req.query;
 
@@ -861,7 +861,7 @@ app.get("/api/analytics/latency", async (req, res) => {
           trend: percentageChange,
           unit: "ms",
         },
-        latencyTrends: {
+        trends: {
           data: trendsData,
           max: parseFloat(chartMax.toFixed(1)),
           min: parseFloat(chartMin.toFixed(1)),
