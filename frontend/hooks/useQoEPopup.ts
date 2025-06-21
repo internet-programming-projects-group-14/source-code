@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, AppStateStatus } from 'react-native';
-import { setupNotificationHandler, scheduleQoENotification,
+import { setupNotificationChannel, scheduleQoENotification,
   cancelAllQoENotifications,
   requestNotificationPermissions } from '@/services/notificationServices';
 
@@ -48,7 +48,7 @@ export const useQoEPopup = (
 
   // Initialize notification handler
   useEffect(() => {
-    setupNotificationHandler();
+    setupNotificationChannel();
     requestNotificationPermissions();
     
     return () => {

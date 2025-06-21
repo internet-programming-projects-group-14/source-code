@@ -27,22 +27,28 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FeedbackPage from "../../components/FeedbackForm";
+import { 
+  registerBackgroundTasks, 
+  unregisterBackgroundTasks, 
+  storeSignalStrength,
+  getBackgroundTaskStatus 
+} from "../../services/backgroundTaskService";
 
 const { SignalModule } = NativeModules;
 const { width, height } = Dimensions.get("window");
 
-// Configure notifications
+// Configure notifications ONCE
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
-    shouldPlaySound: false,
+    shouldPlaySound: true,
     shouldSetBadge: false,
-    shouldShowBanner: false,
-    shouldShowList:false
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
-// QoE Popup Component
+// QoE Popup Component (unchanged)
 const QoEPopup: React.FC<{
   visible: boolean;
   onClose: () => void;
@@ -172,6 +178,7 @@ export default function NetworkQoEApp() {
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] =
     useState<Location.LocationGeocodedAddress | null>(null);
+  const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<string>('Unknown');
 
   // QoE Popup state
   const [shouldShowPopup, setShouldShowPopup] = useState(false);
@@ -179,36 +186,87 @@ export default function NetworkQoEApp() {
     "periodic" | "signal" | null
   >(null);
   const appState = useRef(AppState.currentState);
-  const periodicTimerRef = useRef<number | null>(null);
-  const signalCheckTimerRef = useRef<number | null>(null);
 
   const config = {
-    periodicInterval: 1* 60 * 1000, // 4 hours (4 * 60 minutes * 60 seconds * 1000 milliseconds)
     signalThreshold: -85, // dBm threshold for poor signal
-    minTimeBetweenPopups: 30 * 1000, // 30 minutes between popups (30 * 60 seconds * 1000 milliseconds)
-    notificationDelayMinutes: 0.1, // Show notification 5 minutes after trigger
+    minTimeBetweenPopups: 30 * 1000, // 30 seconds between popups for testing
   };
 
-  // Initialize notifications
+  // Notification permission and setup functions
+  const requestNotificationPermissions = async (): Promise<boolean> => {
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      console.log('Notification permission status:', finalStatus);
+      return finalStatus === 'granted';
+    } catch (error) {
+      console.error('Error requesting notification permissions:', error);
+      return false;
+    }
+  };
+
+  const setupNotificationChannel = async () => {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('qoe-feedback', {
+        name: 'QoE Feedback',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#3b82f6',
+        sound: 'default',
+        enableVibrate: true,
+      });
+      console.log('Android notification channel created');
+    }
+  };
+
+  // Initialize notifications and background tasks
   useEffect(() => {
     const setupNotifications = async () => {
-      await Notifications.requestPermissionsAsync();
-      
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('qoe-feedback', {
-          name: 'QoE Feedback',
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#3b82f6',
-        });
+      try {
+        const hasPermission = await requestNotificationPermissions();
+        console.log('Notification permission granted:', hasPermission);
+        
+        if (hasPermission) {
+          await setupNotificationChannel();
+          
+          // Register background tasks
+          await registerBackgroundTasks();
+          
+          // Get background task status
+          const status = await getBackgroundTaskStatus();
+          setBackgroundTaskStatus(`Notification: ${status.notificationTask}, Signal: ${status.signalTask}`);
+          console.log('Background task status:', status);
+        }
+      } catch (error) {
+        console.error('Error setting up notifications:', error);
       }
     };
 
     setupNotifications();
 
+    // Listen for notification responses
     const notificationSubscription = Notifications.addNotificationResponseReceivedListener(
       response => {
+        console.log('Notification response received:', response);
         const { reason } = response.notification.request.content.data;
+        if (reason === 'periodic' || reason === 'signal') {
+          setPopupTriggerReason(reason);
+          setShouldShowPopup(true);
+        }
+      }
+    );
+
+    // Listen for notifications received while app is in foreground
+    const foregroundSubscription = Notifications.addNotificationReceivedListener(
+      notification => {
+        console.log('Notification received in foreground:', notification);
+        const { reason } = notification.request.content.data;
         if (reason === 'periodic' || reason === 'signal') {
           setPopupTriggerReason(reason);
           setShouldShowPopup(true);
@@ -218,6 +276,14 @@ export default function NetworkQoEApp() {
 
     return () => {
       notificationSubscription.remove();
+      foregroundSubscription.remove();
+    };
+  }, []);
+
+  // Cleanup background tasks on unmount
+  useEffect(() => {
+    return () => {
+      unregisterBackgroundTasks();
     };
   }, []);
 
@@ -249,9 +315,15 @@ export default function NetworkQoEApp() {
     }
   };
 
-  // Schedule a notification for background state
+  // Schedule a notification
   const scheduleNotification = async (reason: "periodic" | "signal") => {
     try {
+      const hasPermission = await requestNotificationPermissions();
+      if (!hasPermission) {
+        console.log('Cannot schedule notification - no permission');
+        return;
+      }
+
       const title = reason === 'signal' 
         ? '📶 Poor Network Detected' 
         : '📶 Rate Your Network Quality';
@@ -260,106 +332,78 @@ export default function NetworkQoEApp() {
         ? 'How is your network experience right now?'
         : 'Help us improve by rating your recent connection quality';
 
-      await Notifications.scheduleNotificationAsync({
+      const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title,
           body,
           data: { type: 'qoe-feedback', reason },
+          sound: 'default',
         },
-        trigger: { 
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: config.notificationDelayMinutes * 60 
-        },
+        trigger: null, // Show immediately
       });
+
+      console.log('Notification scheduled:', notificationId, 'for reason:', reason);
     } catch (error) {
       console.error('Error scheduling notification:', error);
     }
   };
 
-  // Trigger popup with reason
+  // Test notification function
+  const testNotification = async () => {
+    console.log('Testing notification...');
+    await scheduleNotification('periodic');
+  };
+
+  // Trigger popup with reason (now mainly for foreground use)
   const triggerPopup = async (reason: "periodic" | "signal"): Promise<void> => {
+    console.log('Triggering popup for reason:', reason);
     const canShow = await canShowPopup();
-    if (!canShow) return;
+    if (!canShow) {
+      console.log('Cannot show popup - too soon since last one');
+      return;
+    }
 
     await recordPopupShown();
     
     if (appState.current === 'active') {
+      console.log('App is active - showing popup directly');
       setPopupTriggerReason(reason);
       setShouldShowPopup(true);
     } else {
-      await scheduleNotification(reason);
+      console.log('App is in background - background task will handle this');
+      // Background tasks will handle notifications when app is not active
     }
   };
 
-  // Check for poor signal strength
+  // Check for poor signal strength and store it
   const checkSignalStrength = async (): Promise<void> => {
     if (
       networkMetrics?.signalStrength !== undefined &&
-      networkMetrics.signalStrength !== null &&
-      networkMetrics.signalStrength < config.signalThreshold
+      networkMetrics.signalStrength !== null
     ) {
-      console.log(`Poor signal detected: ${networkMetrics.signalStrength} dBm`);
-      await triggerPopup("signal");
-    }
-  };
-
-  // Setup periodic timer
-  const setupPeriodicTimer = (): void => {
-    if (periodicTimerRef.current !== null) {
-      clearInterval(periodicTimerRef.current);
-      periodicTimerRef.current = null;
-    }
-
-    periodicTimerRef.current = setInterval(async () => {
-      console.log("Periodic QoE check triggered");
-      await triggerPopup("periodic");
-    }, config.periodicInterval) as unknown as number;
-  };
-
-  // Setup signal monitoring
-  const setupSignalMonitoring = (): void => {
-    if (signalCheckTimerRef.current !== null) {
-      clearInterval(signalCheckTimerRef.current);
-      signalCheckTimerRef.current = null;
-    }
-
-    // Check signal every 30 seconds when app is active
-    signalCheckTimerRef.current = setInterval(async () => {
-      if (appState.current === "active") {
-        await checkSignalStrength();
+      // Store signal strength for background monitoring
+      await storeSignalStrength(networkMetrics.signalStrength);
+      
+      if (networkMetrics.signalStrength < config.signalThreshold) {
+        console.log(`Poor signal detected: ${networkMetrics.signalStrength} dBm`);
+        await triggerPopup("signal");
       }
-    }, 30000) as unknown as number;
+    }
   };
 
   // Handle app state changes
   const handleAppStateChange = (nextAppState: AppStateStatus): void => {
+    console.log('App state changed from', appState.current, 'to', nextAppState);
+    
     if (
       appState.current.match(/inactive|background/) &&
       nextAppState === "active"
     ) {
       console.log("App has come to the foreground");
-      // Check if we should show popup based on time elapsed
-      checkPeriodicTrigger();
+      // Background tasks are now handling notifications, so we don't need to check here
     }
+    
     appState.current = nextAppState;
-  };
-
-  // Check if periodic popup should be triggered based on elapsed time
-  const checkPeriodicTrigger = async (): Promise<void> => {
-    try {
-      const lastPopupTime = await AsyncStorage.getItem("qoe_last_popup_time");
-      if (!lastPopupTime) {
-        await triggerPopup("periodic");
-        return;
-      }
-
-      const timeSinceLastPopup = Date.now() - parseInt(lastPopupTime, 10);
-      if (timeSinceLastPopup >= config.periodicInterval) {
-        await triggerPopup("periodic");
-      }
-    } catch (error) {
-      console.error("Error checking periodic trigger:", error);
-    }
   };
 
   // Dismiss popup
@@ -466,24 +510,14 @@ export default function NetworkQoEApp() {
   useEffect(() => {
     fetchMetrics();
 
-    // Setup QoE popup monitoring
+    // Setup app state monitoring
     const subscription = AppState.addEventListener(
       "change",
       handleAppStateChange
     );
-    setupPeriodicTimer();
-    setupSignalMonitoring();
 
     return () => {
       subscription?.remove();
-      if (periodicTimerRef.current !== null) {
-        clearInterval(periodicTimerRef.current);
-        periodicTimerRef.current = null;
-      }
-      if (signalCheckTimerRef.current !== null) {
-        clearInterval(signalCheckTimerRef.current);
-        signalCheckTimerRef.current = null;
-      }
     };
   }, []);
 
@@ -591,16 +625,31 @@ export default function NetworkQoEApp() {
             </Text>
           </View>
         </View>
-        <TouchableOpacity
-          onPress={() => router.push("/settings")}
-          style={{ opacity: isLoading ? 0.5 : 1 }}
-        >
-          <Feather name="settings" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {/* Test Notification Button */}
+          <TouchableOpacity
+            onPress={testNotification}
+            style={styles.testButton}
+          >
+            <Feather name="bell" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/settings")}
+            style={{ opacity: isLoading ? 0.5 : 1 }}
+          >
+            <Feather name="settings" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView>
         {error && !isLoading && <ErrorCard />}
+
+        {/* Background Task Status Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Background Tasks Status</Text>
+          <Text style={styles.detailItem}>{backgroundTaskStatus}</Text>
+        </View>
 
         {isLoading ? (
           <LoadingCard title="Network Analysis" />
@@ -785,6 +834,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: "#fff", fontWeight: "bold", fontSize: 16 },
   headerSubtitle: { color: "#93c5fd", fontSize: 12 },
+  testButton: {
+    padding: 8,
+    backgroundColor: "#3b82f6",
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   card: {
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     margin: 10,
