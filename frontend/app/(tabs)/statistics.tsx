@@ -22,6 +22,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get("window");
 
@@ -59,7 +60,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     { value: "latency", label: "Latency", icon: Clock, color: "#f59e0b" },
   ];
 
-  // Map metric values to their corresponding API endpoints
   // Could stillmake names homogeneouss
   const metricEndpoints = {
     qoe: "qoe",
@@ -73,6 +73,8 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     try {
       setLoading(true);
       setError(null);
+      const TOKEN_KEY = "user_unique_id";
+      let userId = await SecureStore.getItemAsync(TOKEN_KEY);
 
       // Validate metric type
       if (!metricEndpoints[selectedMetric]) {
@@ -81,7 +83,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
 
       // Build URL with parameters
       const endpoint = metricEndpoints[selectedMetric];
-      let url = `https://qoe.onrender.com/api/analytics/${endpoint}?period=${selectedPeriod}&userId=user-2456`;
+      let url = `https://qoe.onrender.com/api/analytics/${endpoint}?period=${selectedPeriod}&userId=${userId}`;
       console.log("URL", url);
       const response = await fetch(url);
 
@@ -129,7 +131,11 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   };
 
   const getBarHeight = (value: number, maxValue: number) => {
-    return (value / maxValue) * 100;
+    if ((value && maxValue === 0) || maxValue === 0) {
+      return 0;
+    } else {
+      return (value / maxValue) * 100;
+    }
   };
 
   const currentMetric = metrics.find((m) => m.value === selectedMetric);
@@ -379,6 +385,9 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                     .map((item, index) => {
                       const maxVal = currentData.data.trends.max;
                       const height = getBarHeight(item.value, maxVal);
+
+                      console.log(" A living God");
+                      console.log(maxVal, height);
 
                       return (
                         <View key={index} style={styles.barChartColumn}>

@@ -11,8 +11,6 @@ export async function getOrCreateUserId(): Promise<string> {
     userId = uuidv4();
     await SecureStore.setItemAsync(TOKEN_KEY, userId);
     console.log("Generated new user ID:", userId);
-  } else {
-    console.log("Existing user ID:", userId);
   }
 
   return userId;
