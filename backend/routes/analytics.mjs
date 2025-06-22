@@ -1274,7 +1274,7 @@ router.get("/throughput", async (req, res) => {
       .filter((d) => d.throughput !== null)
       .map((d) => d.throughput);
     const chartMax =
-      allThroughputValues.length > 0 ? Math.max(...allThroughputValues) : 100;
+      allThroughputValues.length > 0 ? Math.max(...allThroughputValues) : 0;
     const chartMin =
       allThroughputValues.length > 0 ? Math.min(...allThroughputValues) : 0;
 
@@ -1303,7 +1303,7 @@ router.get("/throughput", async (req, res) => {
           uploadMeasurements: currentUploadSpeeds.length,
           unit: "Mbps",
         },
-        throughputTrends: {
+        trends: {
           data: trendsData,
           max: parseFloat(chartMax.toFixed(1)),
           min: parseFloat(chartMin.toFixed(1)),
