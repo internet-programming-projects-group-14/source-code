@@ -82,7 +82,6 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
   try {
     const { userId, feedback, technicalData, deviceInfo } = req.body;
 
-
     const timestamp = admin.firestore.Timestamp.now();
 
     // Store user if not exists
@@ -122,11 +121,8 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
         data_speed: technicalData.dataSpeed || "Unknown",
         upload_speed: technicalData.uploadSpeed || "Unknown",
         latency: technicalData.latency || "Unknown",
-        is_connected: technicalData.isConnected ?? null,
         throughput: technicalData.throughput || "Unknown",
         location: feedback.contextInfo?.location || "Unknown",
-        latitude: technicalData.coordinates?.latitude || "Unknown",
-        longitude: technicalData.coordinates?.longitude || "Unknown",
         device_info: deviceInfo,
       });
     }

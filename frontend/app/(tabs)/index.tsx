@@ -462,7 +462,6 @@ export default function NetworkQoEApp() {
 
       // Connection & throughput
       const throughput = await measureThroughput();
-      console.log("Throughput", throughput);
 
       // Latency
       const start = Date.now();

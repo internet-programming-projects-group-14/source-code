@@ -78,7 +78,7 @@ export default function FeedbackPage({
     } = networkMetrics;
 
     const requestBody = {
-      userId: userId, 
+      userId: userId,
       feedback: {
         rating: selectedRating,
         contextInfo: {
