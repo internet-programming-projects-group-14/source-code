@@ -10,13 +10,11 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { resetUserId } from "@/lib/identityToken";
-import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 
 export default function SystemConfiguration() {
-  const navigation = useNavigation();
   const router = useRouter();
   const [anonymizedTelemetry, setAnonymizedTelemetry] = useState(true);
   const [locationServices, setLocationServices] = useState(true);

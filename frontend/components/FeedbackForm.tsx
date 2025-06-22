@@ -20,7 +20,7 @@ import {
 import Constants from "expo-constants";
 
 if (!Constants.expoConfig?.extra?.API_URL) {
-  throw new Error("API_URL is not defined in app.config.js!");
+  console.error("API_URL is not defined in app.config.js!");
 }
 const apiUrl = Constants.expoConfig.extra.API_URL;
 
