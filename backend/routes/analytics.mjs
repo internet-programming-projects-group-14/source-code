@@ -199,7 +199,7 @@ router.get("/qoe", async (req, res) => {
     // Prepare trends data
     const trendsData = [];
     const maxRating = Math.max(...Object.values(hourlyData).flat(), 0);
-    const minRating = Math.min(...Object.values(hourlyData).flat(), 5);
+    const minRating = Math.min(...Object.values(hourlyData).flat(), 0);
 
     if (period === "24H") {
       // For 24H, show hourly data
