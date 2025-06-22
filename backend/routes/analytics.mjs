@@ -890,4 +890,483 @@ router.get("/latency", async (req, res) => {
   }
 });
 
+// Throughput analystics
+
+router.get("/throughput", async (req, res) => {
+  try {
+    const { period = "24H", userId } = req.query;
+
+    // Calculate time ranges based on period
+    const now = new Date();
+    let startTime, previousPeriodStart;
+
+    switch (period) {
+      case "24H":
+        startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        previousPeriodStart = new Date(
+          startTime.getTime() - 24 * 60 * 60 * 1000
+        );
+        break;
+      case "7D":
+        startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        previousPeriodStart = new Date(
+          startTime.getTime() - 7 * 24 * 60 * 60 * 1000
+        );
+        break;
+      case "30D":
+        startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        previousPeriodStart = new Date(
+          startTime.getTime() - 30 * 24 * 60 * 60 * 1000
+        );
+        break;
+      case "90D":
+        startTime = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        previousPeriodStart = new Date(
+          startTime.getTime() - 90 * 24 * 60 * 60 * 1000
+        );
+        break;
+      default:
+        startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        previousPeriodStart = new Date(
+          startTime.getTime() - 24 * 60 * 60 * 1000
+        );
+    }
+
+    // Build query conditions for signalMetrics collection
+    let query = db
+      .collection("signalMetrics")
+      .where("timestamp", ">=", admin.firestore.Timestamp.fromDate(startTime))
+      .where("timestamp", "<=", admin.firestore.Timestamp.fromDate(now));
+
+    let previousQuery = db
+      .collection("signalMetrics")
+      .where(
+        "timestamp",
+        ">=",
+        admin.firestore.Timestamp.fromDate(previousPeriodStart)
+      )
+      .where("timestamp", "<", admin.firestore.Timestamp.fromDate(startTime));
+
+    // Add user filter if provided
+    if (userId) {
+      query = query.where("user_id", "==", userId);
+      previousQuery = previousQuery.where("user_id", "==", userId);
+    }
+
+    // Execute queries
+    const [currentSnapshot, previousSnapshot] = await Promise.all([
+      query.get(),
+      previousQuery.get(),
+    ]);
+
+    // Helper function to parse speed/throughput values
+    const parseSpeed = (speedStr) => {
+      if (typeof speedStr === "number") return speedStr;
+      if (typeof speedStr === "string") {
+        // Handle various formats: "10.5Mbps", "10.5 Mbps", "1024Kbps", "Unknown"
+        if (speedStr.toLowerCase() === "unknown") return null;
+
+        // Remove units and convert to Mbps
+        let cleaned = speedStr.toLowerCase().replace(/\s+/g, "");
+        let multiplier = 1;
+
+        if (cleaned.includes("gbps")) {
+          multiplier = 1000;
+          cleaned = cleaned.replace("gbps", "");
+        } else if (cleaned.includes("mbps")) {
+          multiplier = 1;
+          cleaned = cleaned.replace("mbps", "");
+        } else if (cleaned.includes("kbps")) {
+          multiplier = 0.001;
+          cleaned = cleaned.replace("kbps", "");
+        } else {
+          // Assume Mbps if no unit
+          cleaned = cleaned.replace(/[^0-9.]/g, "");
+        }
+
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? null : parsed * multiplier;
+      }
+      return null;
+    };
+
+    // Process current period data
+    const currentThroughputValues = [];
+    const currentDownloadSpeeds = [];
+    const currentUploadSpeeds = [];
+    const timeSeriesData = {}; // For trends chart
+
+    currentSnapshot.forEach((doc) => {
+      const data = doc.data();
+
+      // Parse different speed fields
+      const throughput = parseSpeed(data.throughput);
+      const downloadSpeed = parseSpeed(data.data_speed);
+      const uploadSpeed = parseSpeed(data.upload_speed);
+
+      // Collect throughput values (prioritize throughput field, fallback to data_speed)
+      const primarySpeed = throughput !== null ? throughput : downloadSpeed;
+
+      if (primarySpeed !== null) {
+        currentThroughputValues.push(primarySpeed);
+
+        // Group by time intervals for trends
+        const timestamp = data.timestamp.toDate();
+        let timeKey;
+
+        if (period === "24H") {
+          timeKey = timestamp.getHours();
+        } else if (period === "7D") {
+          timeKey = Math.floor(
+            (timestamp.getTime() - startTime.getTime()) / (24 * 60 * 60 * 1000)
+          ); // Day index
+        } else {
+          timeKey = timestamp.toISOString().split("T")[0]; // YYYY-MM-DD
+        }
+
+        if (!timeSeriesData[timeKey]) {
+          timeSeriesData[timeKey] = {
+            throughput: [],
+            download: [],
+            upload: [],
+          };
+        }
+
+        timeSeriesData[timeKey].throughput.push(primarySpeed);
+        if (downloadSpeed !== null)
+          timeSeriesData[timeKey].download.push(downloadSpeed);
+        if (uploadSpeed !== null)
+          timeSeriesData[timeKey].upload.push(uploadSpeed);
+      }
+
+      // Collect download and upload speeds separately
+      if (downloadSpeed !== null) currentDownloadSpeeds.push(downloadSpeed);
+      if (uploadSpeed !== null) currentUploadSpeeds.push(uploadSpeed);
+    });
+
+    // Process previous period data for comparison
+    const previousThroughputValues = [];
+    previousSnapshot.forEach((doc) => {
+      const data = doc.data();
+      const throughput = parseSpeed(data.throughput);
+      const downloadSpeed = parseSpeed(data.data_speed);
+      const primarySpeed = throughput !== null ? throughput : downloadSpeed;
+
+      if (primarySpeed !== null) {
+        previousThroughputValues.push(primarySpeed);
+      }
+    });
+
+    // Calculate Throughput metrics
+    const totalMeasurements = currentThroughputValues.length;
+
+    // Average Throughput (higher is better)
+    const averageThroughput =
+      currentThroughputValues.length > 0
+        ? parseFloat(
+            (
+              currentThroughputValues.reduce((sum, speed) => sum + speed, 0) /
+              currentThroughputValues.length
+            ).toFixed(1)
+          )
+        : 0;
+
+    const previousAverageThroughput =
+      previousThroughputValues.length > 0
+        ? previousThroughputValues.reduce((sum, speed) => sum + speed, 0) /
+          previousThroughputValues.length
+        : 0;
+
+    // Calculate percentage change (for throughput, positive change is good)
+    let percentageChange = 0;
+    if (previousAverageThroughput > 0) {
+      percentageChange = parseFloat(
+        (
+          ((averageThroughput - previousAverageThroughput) /
+            previousAverageThroughput) *
+          100
+        ).toFixed(1)
+      );
+    }
+
+    // Find peak (best) and lowest (worst) performance
+    const peakThroughput =
+      currentThroughputValues.length > 0
+        ? Math.max(...currentThroughputValues)
+        : 0;
+    const lowestThroughput =
+      currentThroughputValues.length > 0
+        ? Math.min(...currentThroughputValues)
+        : 0;
+
+    // Calculate variance (range)
+    const variance =
+      currentThroughputValues.length > 0
+        ? parseFloat((peakThroughput - lowestThroughput).toFixed(1))
+        : 0;
+
+    // Calculate average download and upload speeds
+    const averageDownload =
+      currentDownloadSpeeds.length > 0
+        ? parseFloat(
+            (
+              currentDownloadSpeeds.reduce((sum, speed) => sum + speed, 0) /
+              currentDownloadSpeeds.length
+            ).toFixed(1)
+          )
+        : 0;
+
+    const averageUpload =
+      currentUploadSpeeds.length > 0
+        ? parseFloat(
+            (
+              currentUploadSpeeds.reduce((sum, speed) => sum + speed, 0) /
+              currentUploadSpeeds.length
+            ).toFixed(1)
+          )
+        : 0;
+
+    // Prepare trends data
+    const trendsData = [];
+
+    if (period === "24H") {
+      // For 24H, show hourly data
+      for (let hour = 0; hour < 24; hour++) {
+        const hourData = timeSeriesData[hour] || {
+          throughput: [],
+          download: [],
+          upload: [],
+        };
+
+        const avgThroughput =
+          hourData.throughput.length > 0
+            ? parseFloat(
+                (
+                  hourData.throughput.reduce((sum, s) => sum + s, 0) /
+                  hourData.throughput.length
+                ).toFixed(1)
+              )
+            : null;
+
+        const avgDownload =
+          hourData.download.length > 0
+            ? parseFloat(
+                (
+                  hourData.download.reduce((sum, s) => sum + s, 0) /
+                  hourData.download.length
+                ).toFixed(1)
+              )
+            : null;
+
+        const avgUpload =
+          hourData.upload.length > 0
+            ? parseFloat(
+                (
+                  hourData.upload.reduce((sum, s) => sum + s, 0) /
+                  hourData.upload.length
+                ).toFixed(1)
+              )
+            : null;
+
+        trendsData.push({
+          time: `${hour}:00`,
+          throughput: avgThroughput,
+          download: avgDownload,
+          upload: avgUpload,
+          hour: hour,
+        });
+      }
+    } else if (period === "7D") {
+      // For 7D, show daily data
+      for (let day = 0; day < 7; day++) {
+        const dayData = timeSeriesData[day] || {
+          throughput: [],
+          download: [],
+          upload: [],
+        };
+
+        const avgThroughput =
+          dayData.throughput.length > 0
+            ? parseFloat(
+                (
+                  dayData.throughput.reduce((sum, s) => sum + s, 0) /
+                  dayData.throughput.length
+                ).toFixed(1)
+              )
+            : null;
+
+        const avgDownload =
+          dayData.download.length > 0
+            ? parseFloat(
+                (
+                  dayData.download.reduce((sum, s) => sum + s, 0) /
+                  dayData.download.length
+                ).toFixed(1)
+              )
+            : null;
+
+        const avgUpload =
+          dayData.upload.length > 0
+            ? parseFloat(
+                (
+                  dayData.upload.reduce((sum, s) => sum + s, 0) /
+                  dayData.upload.length
+                ).toFixed(1)
+              )
+            : null;
+
+        const date = new Date(startTime.getTime() + day * 24 * 60 * 60 * 1000);
+        trendsData.push({
+          time: date.toISOString().split("T")[0],
+          throughput: avgThroughput,
+          download: avgDownload,
+          upload: avgUpload,
+          day: day,
+        });
+      }
+    } else {
+      // For longer periods, show aggregated data
+      const sortedDays = Object.keys(timeSeriesData).sort();
+      sortedDays.forEach((day) => {
+        const dayData = timeSeriesData[day];
+
+        const avgThroughput =
+          dayData.throughput.length > 0
+            ? parseFloat(
+                (
+                  dayData.throughput.reduce((sum, s) => sum + s, 0) /
+                  dayData.throughput.length
+                ).toFixed(1)
+              )
+            : null;
+
+        const avgDownload =
+          dayData.download.length > 0
+            ? parseFloat(
+                (
+                  dayData.download.reduce((sum, s) => sum + s, 0) /
+                  dayData.download.length
+                ).toFixed(1)
+              )
+            : null;
+
+        const avgUpload =
+          dayData.upload.length > 0
+            ? parseFloat(
+                (
+                  dayData.upload.reduce((sum, s) => sum + s, 0) /
+                  dayData.upload.length
+                ).toFixed(1)
+              )
+            : null;
+
+        trendsData.push({
+          time: day,
+          throughput: avgThroughput,
+          download: avgDownload,
+          upload: avgUpload,
+        });
+      });
+    }
+
+    // Get min/max for chart scaling
+    const allThroughputValues = trendsData
+      .filter((d) => d.throughput !== null)
+      .map((d) => d.throughput);
+    const chartMax =
+      allThroughputValues.length > 0 ? Math.max(...allThroughputValues) : 100;
+    const chartMin =
+      allThroughputValues.length > 0 ? Math.min(...allThroughputValues) : 0;
+
+    // Response data matching your app interface
+    const response = {
+      success: true,
+      data: {
+        period,
+        performanceOverview: {
+          averageThroughput: averageThroughput,
+          percentageChange: percentageChange,
+          dataPoints: totalMeasurements,
+          unit: "Mbps",
+        },
+        performanceSummary: {
+          peakPerformance: parseFloat(peakThroughput.toFixed(1)),
+          lowestPerformance: parseFloat(lowestThroughput.toFixed(1)),
+          variance: variance,
+          trend: percentageChange,
+          unit: "Mbps",
+        },
+        speedBreakdown: {
+          averageDownload: averageDownload,
+          averageUpload: averageUpload,
+          downloadMeasurements: currentDownloadSpeeds.length,
+          uploadMeasurements: currentUploadSpeeds.length,
+          unit: "Mbps",
+        },
+        throughputTrends: {
+          data: trendsData,
+          max: parseFloat(chartMax.toFixed(1)),
+          min: parseFloat(chartMin.toFixed(1)),
+          unit: "Mbps",
+        },
+        speedQualityCategories: categorizeSpeedQuality(currentThroughputValues),
+        metadata: {
+          totalMeasurements,
+          periodStart: startTime.toISOString(),
+          periodEnd: now.toISOString(),
+          comparisonPeriodStart: previousPeriodStart.toISOString(),
+          comparisonPeriodEnd: startTime.toISOString(),
+        },
+      },
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching Throughput analytics:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      message: "Failed to fetch Throughput analytics data",
+    });
+  }
+});
+
+// Helper function to categorize speed quality
+function categorizeSpeedQuality(speedValues) {
+  if (speedValues.length === 0) {
+    return {
+      excellent: 0,
+      good: 0,
+      fair: 0,
+      poor: 0,
+    };
+  }
+
+  let excellent = 0; // > 50 Mbps
+  let good = 0; // 25-50 Mbps
+  let fair = 0; // 10-25 Mbps
+  let poor = 0; // < 10 Mbps
+
+  speedValues.forEach((speed) => {
+    if (speed > 50) {
+      excellent++;
+    } else if (speed > 25) {
+      good++;
+    } else if (speed > 10) {
+      fair++;
+    } else {
+      poor++;
+    }
+  });
+
+  const total = speedValues.length;
+
+  return {
+    excellent: parseFloat(((excellent / total) * 100).toFixed(1)),
+    good: parseFloat(((good / total) * 100).toFixed(1)),
+    fair: parseFloat(((fair / total) * 100).toFixed(1)),
+    poor: parseFloat(((poor / total) * 100).toFixed(1)),
+    counts: { excellent, good, fair, poor, total },
+  };
+}
 export default router;
