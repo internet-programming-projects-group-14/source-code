@@ -30,7 +30,7 @@ if (!Constants.expoConfig?.extra?.API_URL) {
   console.error("API_URL is not defined in app.config.js!");
 }
 
-const apiUrl = Constants.expoConfig.extra.API_URL;
+// const apiUrl = Constants.expoConfig.extra.API_URL;
 
 type MetricType = "qoe" | "speed" | "latency" | "signal";
 
@@ -39,7 +39,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("qoe");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string>("");
   const [animatedValues] = useState(() =>
     Array.from({ length: 7 }, () => new Animated.Value(0))
   );
@@ -72,7 +72,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   const fetchAnalyticsData = async (userId = null) => {
     try {
       setLoading(true);
-      setError(null);
+      setError("");
       const TOKEN_KEY = "user_unique_id";
       let userId = await SecureStore.getItemAsync(TOKEN_KEY);
 
@@ -95,7 +95,10 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
 
       setCurrentData(json);
     } catch (err) {
-      const errorMessage = err.message || "Something went wrong";
+      let errorMessage = "Something went wrong";
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -118,6 +121,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     fetchAnalyticsData();
     animateBars();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMetric, selectedPeriod]);
 
   // Refresh data simulation
@@ -207,7 +211,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
           </View>
         </View>
 
-        {loading ? (
+        {loading || !currentData?.data ? (
           <>
             <View style={styles.center}>
               <ActivityIndicator size="large" />
@@ -251,6 +255,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                         <Text style={styles.kpiUnit}> ms</Text>
                       )}
                     </Text>
+
                     <View style={styles.trendContainer}>
                       {currentData?.data.performanceOverview.percentageChange >=
                       0 ? (
@@ -385,9 +390,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                     .map((item, index) => {
                       const maxVal = currentData.data.trends.max;
                       const height = getBarHeight(item.value, maxVal);
-
-                      console.log(" A living God");
-                      console.log(maxVal, height);
 
                       return (
                         <View key={index} style={styles.barChartColumn}>

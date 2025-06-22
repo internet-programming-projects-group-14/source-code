@@ -133,7 +133,7 @@ export default function FeedbackPage({
         setIsSubmitting(false);
         setSubmitted(false);
         setCurrentView("main");
-      }, 3500);
+      }, 3000);
     }
   };
 
