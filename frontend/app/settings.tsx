@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { resetUserId } from "@/lib/identityToken";
 
 export default function SystemConfiguration() {
   const [anonymizedTelemetry, setAnonymizedTelemetry] = useState(true);
@@ -214,6 +215,11 @@ export default function SystemConfiguration() {
             value={cellularDataUsage}
             onValueChange={setCellularDataUsage}
           />
+        </View>
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.exportButton} onPress={resetUserId}>
+            <Text style={styles.exportButtonText}>Reset Device ID</Text>
+          </TouchableOpacity>
         </View>
 
         {/* System Information */}

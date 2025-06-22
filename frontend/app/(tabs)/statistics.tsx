@@ -83,8 +83,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
       const endpoint = metricEndpoints[selectedMetric];
       let url = `${apiUrl}/api/analytics/${endpoint}?period=${selectedPeriod}&userId=user-2456`;
 
-      console.log(url);
-
       const response = await fetch(url);
 
       if (!response.ok) {

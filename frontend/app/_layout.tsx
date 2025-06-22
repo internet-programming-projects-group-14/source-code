@@ -66,6 +66,7 @@ export function useLaunchState() {
       setIsFirstLaunch(false); // fallback: assume it's not first launch
     }
   };
+  
 
   return { isFirstLaunch, error, checkFirstLaunch };
 }

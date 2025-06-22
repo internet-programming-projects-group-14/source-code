@@ -8,6 +8,7 @@ import * as Device from "expo-device";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { RelativePathString, useRouter } from "expo-router";
+import { ArrowDown } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -486,7 +487,7 @@ export default function NetworkQoEApp() {
         latency,
         isConnected: true,
 
-        throughput: throughput,
+        throughput: throughput.throughput,
         location: locationData,
 
         device: {
@@ -664,10 +665,12 @@ export default function NetworkQoEApp() {
           <LoadingCard title="Network Analysis" />
         ) : networkMetrics ? (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Network Analysis</Text>
-            <Text style={styles.statusBadge}>
-              {!isLoading ? "🟢 Active" : "🔴 Disconnected"}
-            </Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Network Analysis</Text>
+              <Text style={styles.statusBadge}>
+                {!isLoading ? "🟢 Active" : "🔴 Disconnected"}
+              </Text>
+            </View>
 
             <View style={styles.metricBlock}>
               <View style={styles.metric}>
@@ -689,14 +692,9 @@ export default function NetworkQoEApp() {
                 <Feather name="zap" size={16} color="#93c5fd" />
                 <Text style={styles.metricLabel}> Throughput</Text>
                 <Text style={styles.metricValue}>
-                  {networkMetrics.dataSpeed
-                    ? `${networkMetrics.dataSpeed} Mbps`
-                    : "N/A"}
-                </Text>
-                <Text style={styles.metricValue}>
-                  ↑{" "}
-                  {networkMetrics.uploadSpeed
-                    ? `${networkMetrics.uploadSpeed} Mbps`
+                  {<ArrowDown width={12} color="white" />}
+                  {networkMetrics.throughput
+                    ? `${networkMetrics.throughput} Mbps`
                     : "N/A"}
                 </Text>
               </View>
@@ -856,6 +854,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
   },
+  cardHeader: { display: "flex" },
   cardTitle: { color: "#fff", fontWeight: "600", fontSize: 16 },
   statusBadge: { color: "#10b981", marginTop: 6, marginBottom: 12 },
   metricBlock: {
@@ -865,7 +864,13 @@ const styles = StyleSheet.create({
   },
   metric: { flex: 1, gap: 4 },
   metricLabel: { color: "#cbd5e1", fontSize: 12 },
-  metricValue: { color: "#fff", fontWeight: "500" },
+  metricValue: {
+    color: "#fff",
+    fontWeight: "500",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   detailsBlock: {
     flexDirection: "row",
     justifyContent: "space-between",
