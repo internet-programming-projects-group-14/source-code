@@ -82,7 +82,6 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
   try {
     const { userId, feedback, technicalData, deviceInfo } = req.body;
 
-    console.log(userId, feedback, technicalData, deviceInfo);
 
     const timestamp = admin.firestore.Timestamp.now();
 

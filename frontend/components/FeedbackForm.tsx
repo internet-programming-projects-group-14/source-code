@@ -19,9 +19,9 @@ import {
 } from "react-native";
 import Constants from "expo-constants";
 
-// if (!Constants.expoConfig?.extra?.API_URL) {
-//   throw new Error("API_URL is not defined in app.config.js!");
-// }
+if (!Constants.expoConfig?.extra?.API_URL) {
+  console.error("API_URL is not defined in app.config.js!");
+}
 const apiUrl = Constants.expoConfig.extra.API_URL;
 
 interface FeedbackPageProps {
@@ -51,7 +51,7 @@ export default function FeedbackPage({
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // const userId = await getOrCreateUserId();
+    const userId = await getOrCreateUserId();
 
     if (!networkMetrics) {
       console.warn("No network metrics available");
@@ -77,7 +77,6 @@ export default function FeedbackPage({
       device,
     } = networkMetrics;
 
-    const userId = "user-2456";
     const requestBody = {
       userId: userId, // Replace with actual user ID
       feedback: {
@@ -134,7 +133,7 @@ export default function FeedbackPage({
         setIsSubmitting(false);
         setSubmitted(false);
         setCurrentView("main");
-      }, 5000);
+      }, 3500);
     }
   };
 
@@ -275,7 +274,9 @@ export default function FeedbackPage({
             <Text style={styles.successText}>
               Thank you for helping improve network quality in your area
             </Text>
-            <Text style={styles.redirectText}>Redirecting in 3 seconds...</Text>
+            <Text style={styles.redirectText}>
+              Redirecting in a few seconds...
+            </Text>
           </View>
         </View>
       </LinearGradient>

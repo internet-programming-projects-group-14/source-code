@@ -81,10 +81,8 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
 
       // Build URL with parameters
       const endpoint = metricEndpoints[selectedMetric];
-      let url = `${apiUrl}/api/analytics/${endpoint}?period=${selectedPeriod}&userId=user-2456`;
-
-      console.log(url);
-
+      let url = `https://qoe.onrender.com/api/analytics/${endpoint}?period=${selectedPeriod}&userId=user-2456`;
+      console.log("URL", url);
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -102,11 +100,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     }
   };
 
-  useEffect(() => {
-    fetchAnalyticsData();
-    animateBars();
-  }, [selectedMetric, selectedPeriod]);
-
   // Animation for bars
   const animateBars = () => {
     animatedValues.forEach((value, index) => {
@@ -119,6 +112,11 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
       }).start();
     });
   };
+
+  useEffect(() => {
+    fetchAnalyticsData();
+    animateBars();
+  }, [selectedMetric, selectedPeriod]);
 
   // Refresh data simulation
   const handleRefresh = async () => {
@@ -207,7 +205,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
           <>
             <View style={styles.center}>
               <ActivityIndicator size="large" />
-              <Text>Loading QoE data...</Text>
+              <Text style={styles.loadingText}>Loading QoE data...</Text>
             </View>
           </>
         ) : (
@@ -588,6 +586,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingText: {
+    color: "white",
   },
 
   errorText: {

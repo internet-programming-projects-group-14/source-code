@@ -10,9 +10,12 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
+import { resetUserId } from "@/lib/identityToken";
+import * as SecureStore from "expo-secure-store";
 
 export default function SystemConfiguration() {
+  const router = useRouter();
   const [anonymizedTelemetry, setAnonymizedTelemetry] = useState(true);
   const [locationServices, setLocationServices] = useState(true);
   const [technicalMetrics, setTechnicalMetrics] = useState(true);
@@ -32,6 +35,25 @@ export default function SystemConfiguration() {
     },
     { id: "high", label: "High Frequency", description: "Every 2-4 hours" },
   ];
+
+  const TOKEN_KEY = "user_unique_id";
+
+  const handleResetUserId = async () => {
+    try {
+      // Reset the user ID
+      await resetUserId();
+
+      // Check if the user ID exists
+      const userId = await SecureStore.getItemAsync(TOKEN_KEY);
+
+      if (!userId) {
+        // Navigate to onboarding if userId does not exist
+        router.navigate("/onboarding");
+      }
+    } catch (error) {
+      console.error("Error resetting user ID:", error);
+    }
+  };
 
   const ToggleRow = ({
     title,
@@ -214,6 +236,14 @@ export default function SystemConfiguration() {
             value={cellularDataUsage}
             onValueChange={setCellularDataUsage}
           />
+        </View>
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.exportButton}
+            onPress={handleResetUserId}
+          >
+            <Text style={styles.exportButtonText}>Reset Device ID</Text>
+          </TouchableOpacity>
         </View>
 
         {/* System Information */}
