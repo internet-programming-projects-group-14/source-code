@@ -104,6 +104,11 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
         situationContext: feedback.contextInfo.situationContext,
         issue_type: feedback.specificIssues?.map((i) => i.type) || [],
         comment: feedback.additionalDetails || "",
+
+        //added
+        // operator: technicalData?.carrier || "Unknown",
+        // network_type: technicalData?.networkType || "Unknown",
+        // location: feedback.contextInfo?.location || "Unknown"
       });
 
     // Store signal metric
