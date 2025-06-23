@@ -55,7 +55,6 @@ export function useLaunchState() {
     try {
       setError(null);
       const userId = await SecureStore.getItemAsync(USER_ID_KEY);
-      console.log("User ID check result:", userId);
 
       // If userId does not exist, treat as first launch
       setIsFirstLaunch(!userId);
@@ -66,7 +65,6 @@ export function useLaunchState() {
       setIsFirstLaunch(false); // fallback: assume it's not first launch
     }
   };
-  
 
   return { isFirstLaunch, error, checkFirstLaunch };
 }
@@ -110,7 +108,7 @@ function AppLayout() {
       <Stack initialRouteName={isFirstLaunch ? "onboarding" : "(tabs)"}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="settings" options = {{headerShown: false}} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

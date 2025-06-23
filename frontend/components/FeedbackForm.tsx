@@ -78,7 +78,7 @@ export default function FeedbackPage({
     } = networkMetrics;
 
     const requestBody = {
-      userId: userId, 
+      userId: userId,
       feedback: {
         rating: selectedRating,
         contextInfo: {
@@ -99,7 +99,6 @@ export default function FeedbackPage({
         dataSpeed,
         uploadSpeed,
         latency,
-        isConnected,
         throughput,
         coordinates: location || null,
       },

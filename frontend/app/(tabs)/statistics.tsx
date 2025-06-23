@@ -41,7 +41,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [animatedValues] = useState(() =>
-    Array.from({ length: 7 }, () => new Animated.Value(0))
+    Array.from({ length: 30 }, () => new Animated.Value(0))
   );
   const [currentData, setCurrentData] = useState<
     QoEAnalyticsResponse | undefined
@@ -384,58 +384,73 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
               </View>
 
               <View style={styles.chartContainer}>
-                <View style={styles.barChartContainer}>
-                  {currentData?.data.trends.data
-                    .slice(0, 7)
-                    .map((item, index) => {
-                      const maxVal = currentData.data.trends.max;
-                      const height = getBarHeight(item.value, maxVal);
+                <ScrollView
+                  horizontal={true}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.scrollViewContent}
+                >
+                  <View style={styles.barChartContainer}>
+                    {currentData?.data.trends.data
+                      .slice(0, 30)
+                      .map((item, index) => {
+                        const maxVal = currentData.data.trends.max;
+                        const height = getBarHeight(item.value, maxVal);
 
-                      return (
-                        <View key={index} style={styles.barChartColumn}>
-                          <View style={styles.barChartBackground}>
-                            <Animated.View
-                              style={[
-                                styles.barChartBar,
-                                {
-                                  height: animatedValues[index].interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: ["0%", `${height}%`],
-                                  }),
-                                  backgroundColor:
-                                    currentMetric?.color || "#60a5fa",
-                                },
-                              ]}
-                            />
-                            {selectedMetric === "speed" && (
+                        console.log(maxVal, height);
+
+                        return (
+                          <View key={index} style={styles.barChartColumn}>
+                            <View style={styles.barChartBackground}>
                               <Animated.View
                                 style={[
                                   styles.barChartBar,
                                   {
                                     height: animatedValues[index].interpolate({
                                       inputRange: [0, 1],
-                                      outputRange: [
-                                        "0%",
-                                        `${getBarHeight(item.value, maxVal)}%`,
-                                      ],
+                                      outputRange: ["0%", `${height}%`],
                                     }),
-                                    backgroundColor: "#8b5cf6",
-                                    opacity: 0.7,
+                                    backgroundColor:
+                                      currentMetric?.color || "#60a5fa",
                                   },
                                 ]}
                               />
-                            )}
+                              {selectedMetric === "speed" && (
+                                <Animated.View
+                                  style={[
+                                    styles.barChartBar,
+                                    {
+                                      height: animatedValues[index].interpolate(
+                                        {
+                                          inputRange: [0, 1],
+                                          outputRange: [
+                                            "0%",
+                                            `${getBarHeight(
+                                              item.value,
+                                              maxVal
+                                            )}%`,
+                                          ],
+                                        }
+                                      ),
+                                      backgroundColor: "#8b5cf6",
+                                      opacity: 0.7,
+                                    },
+                                  ]}
+                                />
+                              )}
+                            </View>
+                            <Text style={styles.barChartLabel}>
+                              {item.time}
+                            </Text>
+                            <Text style={styles.barChartValue}>
+                              {selectedMetric === "speed"
+                                ? item.value.toFixed(1)
+                                : item.value.toFixed(1)}
+                            </Text>
                           </View>
-                          <Text style={styles.barChartLabel}>{item.time}</Text>
-                          <Text style={styles.barChartValue}>
-                            {selectedMetric === "speed"
-                              ? item.value.toFixed(1)
-                              : item.value.toFixed(1)}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                </View>
+                        );
+                      })}
+                  </View>
+                </ScrollView>
 
                 {selectedMetric === "speed" && (
                   <View style={styles.chartLegend}>
@@ -786,6 +801,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.05)",
+    height: 300,
+  },
+  scrollViewContent: {
+    paddingHorizontal: 10,
   },
   barChartContainer: {
     flexDirection: "row",
@@ -795,14 +814,18 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   barChartColumn: {
-    flex: 1,
+    width: 40, // Fixed width for each bar column
+    marginHorizontal: 2, // Small spacing between bars
     alignItems: "center",
-    justifyContent: "flex-end",
-    marginHorizontal: 2,
+    // flex: 1,
+    // alignItems: "center",
+    // justifyContent: "flex-end",
+    // marginHorizontal: 2,
   },
   barChartBackground: {
     width: "85%",
-    height: "100%",
+    // height: "100%",
+    height: 180,
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 6,
     overflow: "hidden",
