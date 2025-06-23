@@ -84,6 +84,9 @@ export type QoEAnalyticsResponse = {
       data: {
         time: string; // ISO date string
         value: number;
+        throughput?: number;
+        download?: number;
+        upload?: number;
       }[];
       max: number;
       min: number;

@@ -135,6 +135,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   };
 
   const getBarHeight = (value: number, maxValue: number) => {
+    console.log(value, maxValue);
     if ((value && maxValue === 0) || maxValue === 0) {
       return 0;
     } else {
@@ -395,7 +396,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                       .map((item, index) => {
                         const maxVal = currentData.data.trends.max;
                         const height = getBarHeight(item.value, maxVal);
-                        console.log(currentData.data.trends.data);
+                        console.log(item);
 
                         return (
                           <View key={index} style={styles.barChartColumn}>
@@ -413,7 +414,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                                   },
                                 ]}
                               />
-                              {selectedMetric === "speed" && (
+                              {selectedMetric === "speed" && item.throughput ? (
                                 <Animated.View
                                   style={[
                                     styles.barChartBar,
@@ -424,7 +425,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                                           outputRange: [
                                             "0%",
                                             `${getBarHeight(
-                                              item.value,
+                                              item.throughput,
                                               maxVal
                                             )}%`,
                                           ],
@@ -435,14 +436,14 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                                     },
                                   ]}
                                 />
-                              )}
+                              ) : null}
                             </View>
                             <Text style={styles.barChartLabel}>
                               {item.time}
                             </Text>
                             <Text style={styles.barChartValue}>
                               {selectedMetric === "speed"
-                                ? item.value.toFixed(1)
+                                ? item.throughput.toFixed(1)
                                 : item.value.toFixed(1)}
                             </Text>
                           </View>
