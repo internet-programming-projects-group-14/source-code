@@ -250,7 +250,7 @@ router.get("/qoe", async (req, res) => {
         userId,
         period,
         performanceOverview: {
-          averageQoEScore: averageQoE,
+          averageScore: averageQoE,
           percentageChange: percentageChange,
           dataPoints: totalMeasurements,
         },
@@ -529,7 +529,7 @@ router.get("/rf-quality", async (req, res) => {
       data: {
         period,
         performanceOverview: {
-          averageRFQuality: averageRFQuality,
+          averageScore: averageRFQuality,
           percentageChange: percentageChange,
           dataPoints: totalMeasurements,
           unit: "dBm",
@@ -851,7 +851,7 @@ router.get("/latency", async (req, res) => {
       data: {
         period,
         performanceOverview: {
-          averageLatency: averageLatency,
+          averageScore: averageLatency,
           percentageChange: percentageChange,
           dataPoints: totalMeasurements,
           unit: "ms",
@@ -1286,7 +1286,7 @@ router.get("/throughput", async (req, res) => {
       data: {
         period,
         performanceOverview: {
-          averageThroughput: averageThroughput,
+          averageScore: averageThroughput,
           percentageChange: percentageChange,
           dataPoints: totalMeasurements,
           unit: "Mbps",
