@@ -99,7 +99,6 @@ export default function FeedbackPage({
         dataSpeed,
         uploadSpeed,
         latency,
-        isConnected,
         throughput,
         coordinates: location || null,
       },

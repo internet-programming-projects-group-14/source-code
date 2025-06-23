@@ -176,6 +176,8 @@ export default function NetworkQoEApp() {
     null
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingDeviceMetrics, setIsLoadingDeviceMetrics] = useState(true);
+  const [isLoadingNetworkMetrics, setIsLoadingNetworkMetrics] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] =
     useState<Location.LocationGeocodedAddress | null>(null);
@@ -424,9 +426,10 @@ export default function NetworkQoEApp() {
     setPopupTriggerReason(null);
   };
 
-  const fetchMetrics = async () => {
+  // fetches metrics gotten from the device
+  const fetchDeviceMetrics = async () => {
     try {
-      setIsLoading(true);
+      setIsLoadingDeviceMetrics(true);
       setError(null);
 
       const hasPermissions = await requestAndroidPermissions();
@@ -460,18 +463,6 @@ export default function NetworkQoEApp() {
       // console.log(signalData);
       // console.log("Cell data", cellInfo);
 
-      // Connection & throughput
-      const throughput = await measureThroughput();
-
-      // Latency
-      const start = Date.now();
-      try {
-        await fetch("https://qoe-backend-ov95.onrender.com/ping-google");
-      } catch (err) {
-        console.warn("Ping failed:", err);
-      }
-      const latency = Date.now() - start;
-
       const finalMetrics: NetworkMetrics = {
         signalStrength: cellInfo.signalStrength || null,
         networkType: cellInfo.type || null,
@@ -483,10 +474,10 @@ export default function NetworkQoEApp() {
 
         dataSpeed: null,
         uploadSpeed: null,
-        latency,
+        latency: null,
         isConnected: true,
 
-        throughput: throughput.throughput,
+        throughput: null,
         location: locationData,
 
         device: {
@@ -499,9 +490,92 @@ export default function NetworkQoEApp() {
       setNetworkMetrics(finalMetrics);
 
       // Check signal strength after metrics are loaded
-      if (finalMetrics.signalStrength !== null) {
+    } catch (err) {
+      console.error("Error collecting metrics:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to collect network metrics"
+      );
+    } finally {
+      setIsLoadingDeviceMetrics(false);
+      if (networkMetrics?.signalStrength !== null) {
         checkSignalStrength();
       }
+    }
+  };
+
+  // fetches network metrics such as latency and throughput
+
+  const fetchNetworkMetrics = async () => {
+    try {
+      setIsLoadingNetworkMetrics(true);
+      setError(null);
+
+      // Connection & throughput
+      const throughput = await measureThroughput();
+
+      // Latency
+      const start = Date.now();
+      try {
+        await fetch("https://qoe-backend-ov95.onrender.com/ping-google");
+      } catch (err) {
+        console.warn("Ping failed:", err);
+      }
+      const latency = Date.now() - start;
+
+      setNetworkMetrics((prev) => {
+        if (prev === null) {
+          return {
+            signalStrength: null,
+            networkType: null,
+            carrier: null,
+            frequency: null,
+            bandwidth: null,
+            cellId: null,
+            pci: null,
+
+            dataSpeed: null, // Download Mbps
+            uploadSpeed: null, // Upload Mbps
+            latency: latency, // Ping time (ms)
+            isConnected: null,
+
+            throughput: throughput.throughput, // From NetInfo.details (type varies by platform)
+
+            location: {
+              latitude: null,
+              longitude: null,
+              accuracy: null,
+            },
+
+            device: {
+              platform: "",
+              model: null,
+              osVersion: null,
+              // appVersion: string | null;
+            },
+          };
+        }
+
+        return {
+          ...prev,
+          throughput: throughput.throughput,
+          latency: latency,
+        };
+      });
+    } catch (err) {
+      console.error("Error collecting metrics:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to collect network metrics"
+      );
+    } finally {
+      setIsLoadingNetworkMetrics(false);
+    }
+  };
+
+  const fetchMetrics = async () => {
+    setIsLoading(true);
+    try {
+      await fetchDeviceMetrics();
+      await fetchNetworkMetrics();
     } catch (err) {
       console.error("Error collecting metrics:", err);
       setError(
@@ -660,14 +734,14 @@ export default function NetworkQoEApp() {
           <Text style={styles.detailItem}>{backgroundTaskStatus}</Text>
         </View> */}
 
-        {isLoading ? (
+        {isLoadingDeviceMetrics ? (
           <LoadingCard title="Network Analysis" />
         ) : networkMetrics ? (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Network Analysis</Text>
               <Text style={styles.statusBadge}>
-                {!isLoading ? "🟢 Active" : "🔴 Disconnected"}
+                {!isLoading ? "🟢 Analysis Complete" : "🔴 Analysis Incomplete"}
               </Text>
             </View>
 
@@ -729,7 +803,7 @@ export default function NetworkQoEApp() {
           </View>
         ) : null}
 
-        {isLoading ? (
+        {isLoadingDeviceMetrics ? (
           <LoadingCard title="Location Info" />
         ) : networkMetrics ? (
           <View style={styles.card}>
