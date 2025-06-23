@@ -70,7 +70,7 @@ export type QoEAnalyticsResponse = {
     userId: string;
     period: string;
     performanceOverview: {
-      averageQoEScore: number;
+      averageScore: number;
       percentageChange: number;
       dataPoints: number;
     };
