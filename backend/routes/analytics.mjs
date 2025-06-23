@@ -1148,7 +1148,7 @@ router.get("/throughput", async (req, res) => {
                   hourData.throughput.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         const avgDownload =
           hourData.download.length > 0
@@ -1158,7 +1158,7 @@ router.get("/throughput", async (req, res) => {
                   hourData.download.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         const avgUpload =
           hourData.upload.length > 0
@@ -1168,7 +1168,7 @@ router.get("/throughput", async (req, res) => {
                   hourData.upload.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         trendsData.push({
           time: `${hour}:00`,
@@ -1195,7 +1195,7 @@ router.get("/throughput", async (req, res) => {
                   dayData.throughput.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         const avgDownload =
           dayData.download.length > 0
@@ -1205,7 +1205,7 @@ router.get("/throughput", async (req, res) => {
                   dayData.download.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         const avgUpload =
           dayData.upload.length > 0
@@ -1215,7 +1215,7 @@ router.get("/throughput", async (req, res) => {
                   dayData.upload.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         const date = new Date(startTime.getTime() + day * 24 * 60 * 60 * 1000);
         trendsData.push({
@@ -1240,7 +1240,7 @@ router.get("/throughput", async (req, res) => {
                   dayData.throughput.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         const avgDownload =
           dayData.download.length > 0
@@ -1250,7 +1250,7 @@ router.get("/throughput", async (req, res) => {
                   dayData.download.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         const avgUpload =
           dayData.upload.length > 0
@@ -1260,7 +1260,7 @@ router.get("/throughput", async (req, res) => {
                   dayData.upload.length
                 ).toFixed(1)
               )
-            : null;
+            : 0;
 
         trendsData.push({
           time: day,

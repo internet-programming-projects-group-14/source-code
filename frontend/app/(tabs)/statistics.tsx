@@ -244,7 +244,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                   </View>
                   <View style={styles.kpiValueContainer}>
                     <Text style={styles.kpiValue}>
-                      {currentData?.data.performanceOverview.averageQoEScore}
+                      {currentData?.data.performanceOverview.averageScore}
                       {selectedMetric === "speed" && (
                         <Text style={styles.kpiUnit}> Mbps</Text>
                       )}
@@ -395,8 +395,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                       .map((item, index) => {
                         const maxVal = currentData.data.trends.max;
                         const height = getBarHeight(item.value, maxVal);
-
-                        console.log(maxVal, height);
+                        console.log(currentData.data.trends.data);
 
                         return (
                           <View key={index} style={styles.barChartColumn}>
