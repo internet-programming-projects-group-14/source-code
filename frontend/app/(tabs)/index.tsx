@@ -450,7 +450,18 @@ export default function NetworkQoEApp() {
 
         const [address] = await Location.reverseGeocodeAsync(locationData);
         setAddress(address);
-        locationData = { ...locationData, accuracy: loc.coords.accuracy };
+        console.log(address);
+        if (address) {
+          locationData = {
+            ...locationData,
+            accuracy: loc.coords.accuracy,
+            city: address.city,
+            subRegion: address.subregion,
+            region: address.region,
+          };
+        } else {
+          locationData = { ...locationData, accuracy: loc.coords.accuracy };
+        }
       }
 
       // Signal metrics from native module
