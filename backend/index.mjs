@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import analyticsRouter from "./routes/analytics.mjs";
+import communityAnalyticsRouter from "./routes/communityAnalytics.mjs";
 import { db, admin } from "./firebase.mjs";
 import operatorRouter from "./routes/operators.mjs";
 
@@ -152,6 +153,7 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
 
 //Mount route module
 app.use("/api/analytics", analyticsRouter);
+app.use("/api/community", communityAnalyticsRouter);
 app.use("/api/operators", operatorRouter);
 
 // Ping Google
@@ -189,7 +191,6 @@ app.use((error, req, res, next) => {
     error: "Internal server error",
   });
 });
-// After your existing app.use() calls, add:
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {

@@ -7,5 +7,4 @@
 - add a help button that explains what all these metrics mean
 - pull down to refresh
 - add a note that informs the user that when they delete their they delete their analytics and history
-- display the initial measurements even if throughput is not ready
 - add upload speed

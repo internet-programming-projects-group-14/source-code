@@ -19,6 +19,9 @@ export type NetworkMetrics = {
     latitude: number | null;
     longitude: number | null;
     accuracy: number | null;
+    city?: string | null;
+    subRegion?: string | null;
+    region?: string | null;
   } | null;
 
   device: {
