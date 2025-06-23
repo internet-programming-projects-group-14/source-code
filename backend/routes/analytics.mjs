@@ -198,8 +198,10 @@ router.get("/qoe", async (req, res) => {
 
     // Prepare trends data
     const trendsData = [];
-    const maxRating = Math.max(...Object.values(hourlyData).flat(), 0);
-    const minRating = Math.min(...Object.values(hourlyData).flat(), 0);
+    const flatValues = Object.values(hourlyData).flat();
+
+    const maxRating = flatValues.length > 0 ? Math.max(...flatValues) : 0;
+    const minRating = flatValues.length > 0 ? Math.min(...flatValues) : 0;
 
     if (period === "24H") {
       // For 24H, show hourly data
@@ -840,7 +842,7 @@ router.get("/latency", async (req, res) => {
     const validValues = trendsData
       .filter((d) => d.value !== null)
       .map((d) => d.value);
-    const chartMax = validValues.length > 0 ? Math.max(...validValues) : 100;
+    const chartMax = validValues.length > 0 ? Math.max(...validValues) : 0;
     const chartMin = validValues.length > 0 ? Math.min(...validValues) : 0;
 
     // Response data matching your app interface
