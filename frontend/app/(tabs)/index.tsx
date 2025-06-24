@@ -185,9 +185,6 @@ export default function NetworkQoEApp() {
   const [backgroundTaskStatus, setBackgroundTaskStatus] =
     useState<string>("Unknown");
 
-  useEffect(() => {
-    console.log("Tabs screen logic executing...");
-  }, []);
   // QoE Popup state
   const [shouldShowPopup, setShouldShowPopup] = useState(false);
   const [popupTriggerReason, setPopupTriggerReason] = useState<
@@ -458,7 +455,6 @@ export default function NetworkQoEApp() {
 
         const [address] = await Location.reverseGeocodeAsync(locationData);
         setAddress(address);
-        console.log(address);
         if (address) {
           locationData = {
             ...locationData,
@@ -727,7 +723,7 @@ export default function NetworkQoEApp() {
             </Text>
           </View>
         </View>
-        <View style={{ flexDirection: "row", gap: 10 }}>
+        <View style={{ flexDirection: "row", gap: 10, alignItems:'center' }}>
           {/* Test Notification Button */}
           <TouchableOpacity
             onPress={testNotification}

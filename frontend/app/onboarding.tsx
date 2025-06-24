@@ -426,40 +426,40 @@ const OnboardingScreen = () => {
       </ScrollView>
 
       {/* Navigation */}
-      <SafeAreaView style={styles.navigation}>
-        <TouchableOpacity
-          style={[
-            styles.navButton,
-            styles.navButtonOutline,
-            currentStep === 0 && styles.navButtonDisabled,
-          ]}
-          onPress={handlePrevious}
-          disabled={currentStep === 0}
-        >
-          <ChevronLeft size={16} color="white" />
-          <Text style={styles.navButtonText}>Previous</Text>
-        </TouchableOpacity>
-
-        <View style={styles.stepIndicator}>
-          <Text style={styles.stepText}>
-            Step {currentStep + 1} of {steps.length}
-          </Text>
+      <SafeAreaView style={styles.navigationContainer}>
+        <View style={styles.navigation}>
+          <TouchableOpacity
+            style={[
+              styles.navButton,
+              styles.navButtonOutline,
+              currentStep === 0 && styles.navButtonDisabled,
+            ]}
+            onPress={handlePrevious}
+            disabled={currentStep === 0}
+          >
+            <ChevronLeft size={16} color="white" />
+            <Text style={styles.navButtonText}>Previous</Text>
+          </TouchableOpacity>
+          <View style={styles.stepIndicator}>
+            <Text style={styles.stepText}>
+              Step {currentStep + 1} of {steps.length}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.navButton,
+              styles.navButtonPrimary,
+              !canProceed && styles.navButtonDisabled,
+            ]}
+            onPress={handleNext}
+            disabled={!canProceed}
+          >
+            <Text style={styles.navButtonText}>
+              {isLastStep ? "Get Started" : "Continue"}
+            </Text>
+            <ChevronRight size={16} color="white" />
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={[
-            styles.navButton,
-            styles.navButtonPrimary,
-            !canProceed && styles.navButtonDisabled,
-          ]}
-          onPress={handleNext}
-          disabled={!canProceed}
-        >
-          <Text style={styles.navButtonText}>
-            {isLastStep ? "Get Started" : "Continue"}
-          </Text>
-          <ChevronRight size={16} color="white" />
-        </TouchableOpacity>
       </SafeAreaView>
 
       {currentStep === 3 && !permissions.location && (
@@ -527,6 +527,12 @@ const styles = StyleSheet.create({
   dotActive: {
     backgroundColor: "#60A5FA",
   },
+
+  // scrollContent: {
+  //   flexGrow: 1, // Ensure the content takes up the full height of the ScrollView
+  //   justifyContent: "center", // Center content vertically
+  //   alignItems: "center", // Center content horizontally
+  // },
 
   content: {
     flex: 1,
@@ -819,6 +825,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6B7280", // neutral gray
     textAlign: "center",
+  },
+
+  navigationContainer: {
+    backgroundColor: "#1F2937", // Match your background color
+    paddingBottom: 32, // Add padding to avoid overlap with the navigation bar
   },
 
   navigation: {
