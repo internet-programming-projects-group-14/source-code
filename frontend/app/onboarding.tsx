@@ -97,8 +97,8 @@ const OnboardingScreen = () => {
       <View style={styles.textContainer}>
         <Text style={styles.welcomeTitle}>Monitor Network Quality</Text>
         <Text style={styles.welcomeSubtitle}>
-          Get real-time insights into your network performance with
-          professional-grade analytics and community-driven data.
+          Get insights into your network performance with analytics and
+          community-driven data.
         </Text>
       </View>
     </View>
@@ -335,7 +335,7 @@ const OnboardingScreen = () => {
     {
       id: "welcome",
       title: "Welcome to Network QoE Monitor",
-      subtitle: "Professional network quality analysis at your fingertips",
+      subtitle: "Network quality analysis at your fingertips",
       content: <WelcomeContent />,
     },
     {
@@ -426,7 +426,7 @@ const OnboardingScreen = () => {
       </ScrollView>
 
       {/* Navigation */}
-      <View style={styles.navigation}>
+      <SafeAreaView style={styles.navigation}>
         <TouchableOpacity
           style={[
             styles.navButton,
@@ -460,7 +460,7 @@ const OnboardingScreen = () => {
           </Text>
           <ChevronRight size={16} color="white" />
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
 
       {currentStep === 3 && !permissions.location && (
         <View style={styles.warningContainer}>
@@ -527,9 +527,10 @@ const styles = StyleSheet.create({
   dotActive: {
     backgroundColor: "#60A5FA",
   },
+
   content: {
     flex: 1,
-    padding: 16,
+    padding: 20,
   },
   card: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
