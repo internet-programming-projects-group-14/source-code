@@ -87,7 +87,7 @@ async function getFeedbackForOperator(operatorId, startTime, endTime) {
 router.get("/:operatorId/dashboard", validateOperator, async (req, res) => {
   try {
     const { operatorId } = req.params;
-    const { timeRange = "7D", region } = req.query;
+    const { timeRange = "7D", region , city } = req.query;
 
     // Calculate time range
     const now = new Date();
@@ -189,6 +189,7 @@ router.get("/:operatorId/dashboard", validateOperator, async (req, res) => {
         operatorId,
         timeRange,
         region: region || "all",
+        city: city || "all",
         metrics: {
           qoe: {
             averageRating: parseFloat(avgRating.toFixed(2)),
