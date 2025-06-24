@@ -39,6 +39,7 @@ const { SignalModule } = NativeModules;
 const { width, height } = Dimensions.get("window");
 
 // Configure notifications ONCE
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -184,6 +185,9 @@ export default function NetworkQoEApp() {
   const [backgroundTaskStatus, setBackgroundTaskStatus] =
     useState<string>("Unknown");
 
+  useEffect(() => {
+    console.log("Tabs screen logic executing...");
+  }, []);
   // QoE Popup state
   const [shouldShowPopup, setShouldShowPopup] = useState(false);
   const [popupTriggerReason, setPopupTriggerReason] = useState<
@@ -231,32 +235,36 @@ export default function NetworkQoEApp() {
   };
 
   // Initialize notifications and background tasks
+
   useEffect(() => {
-    const setupNotifications = async () => {
-      try {
-        const hasPermission = await requestNotificationPermissions();
-        console.log("Notification permission granted:", hasPermission);
+    const timer = setTimeout(() => {
+      const setupNotifications = async () => {
+        try {
+          const hasPermission = await requestNotificationPermissions();
+          console.log("Notification permission granted:", hasPermission);
 
-        if (hasPermission) {
-          await setupNotificationChannel();
+          if (hasPermission) {
+            await setupNotificationChannel();
+            await registerBackgroundTasks();
 
-          // Register background tasks
-          await registerBackgroundTasks();
-
-          // Get background task status
-          const status = await getBackgroundTaskStatus();
-          setBackgroundTaskStatus(
-            `Notification: ${status.notificationTask}, Signal: ${status.signalTask}`
-          );
-          console.log("Background task status:", status);
+            const status = await getBackgroundTaskStatus();
+            setBackgroundTaskStatus(
+              `Notification: ${status.notificationTask}, Signal: ${status.signalTask}`
+            );
+            console.log("Background task status:", status);
+          }
+        } catch (error) {
+          console.error("Error setting up notifications:", error);
         }
-      } catch (error) {
-        console.error("Error setting up notifications:", error);
-      }
-    };
+      };
 
-    setupNotifications();
+      setupNotifications();
+    }, 3000); // Delay notification setup even more
 
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     // Listen for notification responses
     const notificationSubscription =
       Notifications.addNotificationResponseReceivedListener((response) => {
@@ -727,10 +735,7 @@ export default function NetworkQoEApp() {
           >
             <Feather name="bell" size={20} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push("/settings")}
-            style={{ opacity: isLoading ? 0.5 : 1 }}
-          >
+          <TouchableOpacity onPress={() => router.push("/settings")}>
             <Feather name="settings" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
