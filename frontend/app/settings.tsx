@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -18,15 +18,6 @@ import * as SecureStore from "expo-secure-store";
 
 export default function SystemConfiguration() {
   const router = useRouter();
-  const [anonymizedTelemetry, setAnonymizedTelemetry] = useState(true);
-  const [locationServices, setLocationServices] = useState(true);
-  const [technicalMetrics, setTechnicalMetrics] = useState(true);
-  const [qoeNotifications, setQoeNotifications] = useState(true);
-  const [backgroundMonitoring, setBackgroundMonitoring] = useState(true);
-  const [automatedSpeedTesting, setAutomatedSpeedTesting] = useState(true);
-  const [cellularDataUsage, setCellularDataUsage] = useState(true);
-  const [feedbackFrequency, setFeedbackFrequency] =
-    useState("Normal Frequency");
 
   const openAppSettings = () => {
     Linking.openSettings().catch(() => {
@@ -82,16 +73,6 @@ export default function SystemConfiguration() {
     </View>
   );
 
-  const frequencyOptions = [
-    { id: "low", label: "Low Frequency", description: "Once per day maximum" },
-    {
-      id: "normal",
-      label: "Normal Frequency",
-      description: "2-3 prompts per day",
-    },
-    { id: "high", label: "High Frequency", description: "Every 2-4 hours" },
-  ];
-
   const handleResetUserId = async () => {
     const TOKEN_KEY = "user_unique_id";
     try {
@@ -109,44 +90,6 @@ export default function SystemConfiguration() {
       console.error("Error resetting user ID:", error);
     }
   };
-
-  const FrequencyOption = ({
-    option,
-    isSelected,
-  }: {
-    option: (typeof frequencyOptions)[0];
-    isSelected: boolean;
-  }) => (
-    <TouchableOpacity
-      style={[
-        styles.frequencyOption,
-        isSelected && styles.frequencyOptionSelected,
-      ]}
-      onPress={() => setFeedbackFrequency(option.label)}
-    >
-      <Text
-        style={[
-          styles.frequencyLabel,
-          isSelected && styles.frequencyLabelSelected,
-        ]}
-      >
-        {option.label}
-      </Text>
-      <Text
-        style={[
-          styles.frequencyDescription,
-          isSelected && styles.frequencyDescriptionSelected,
-        ]}
-      >
-        {option.description}
-      </Text>
-      {isSelected && (
-        <View style={styles.selectedIndicator}>
-          <View style={styles.selectedDot} />
-        </View>
-      )}
-    </TouchableOpacity>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
