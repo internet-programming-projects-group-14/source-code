@@ -112,6 +112,11 @@ router.get("/:operatorId/dashboard", validateOperator, async (req, res) => {
     // Add region filter if provided
     if (region && region !== "all") {
       metricsQuery = metricsQuery.where("location.region", "==", region);
+
+      //city filter
+      if (city && city !== "all" && region && region !== "all") {
+        metricsQuery = metricsQuery.where("location.city", "==", city);
+      }
     }
 
     // Get feedback through user correlation
