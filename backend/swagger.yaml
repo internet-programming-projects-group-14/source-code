@@ -1,0 +1,863 @@
+openapi: 3.0.0
+info:
+  title: QoE Collection Application API
+  description: API for collecting and analyzing Quality of Experience metrics
+  version: 1.0.0
+servers:
+  - url: https://qoe-backend-ov95.onrender.com/api/v1
+    description: Production server
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+
+tags:
+  - name: Feedback
+    description: User feedback endpoints
+  - name: Analytics
+    description: Network quality analytics
+  - name: Operators
+    description: Operator-specific insights
+  - name: Geographic
+    description: Geographic analysis
+  - name: Temporal
+    description: Time-based analysis
+  - name: System
+    description: System health and monitoring
+
+paths:
+  # Feedback Endpoints
+  /feedback:
+    post:
+      tags: [Feedback]
+      summary: Submit network feedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackSubmission'
+      responses:
+        '201':
+          description: Feedback submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  userId:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid feedback data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  required:
+                    type: array
+                    items:
+                      type: string
+
+  /feedback/ratings:
+    get:
+      tags: [Feedback]
+      summary: Get user feedback ratings
+      parameters:
+        - $ref: '#/components/parameters/timeRange'
+        - $ref: '#/components/parameters/networkOperator'
+        - name: ratingRange
+          in: query
+          description: Min and max rating (e.g., "1-5")
+          schema:
+            type: string
+        - name: issueType
+          in: query
+          description: Filter by specific issue type
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of feedback ratings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackRatingsResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /feedback/comments:
+    get:
+      tags: [Feedback]
+      summary: Get user feedback comments
+      parameters:
+        - $ref: '#/components/parameters/timeRange'
+        - name: sentiment
+          in: query
+          description: Filter by sentiment (positive/negative/neutral)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of feedback comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackCommentsResponse'
+
+  # Analytics Endpoints
+  /analytics/qoe:
+    get:
+      tags: [Analytics]
+      summary: Get quality of experience analytics
+      parameters:
+        - $ref: '#/components/parameters/timeRange'
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '200':
+          description: QoE analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QoEAnalyticsResponse'
+
+  /analytics/rf-quality:
+    get:
+      tags: [Analytics]
+      summary: Get RF quality metrics
+      parameters:
+        - $ref: '#/components/parameters/timeRange'
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '200':
+          description: RF quality metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RFQualityResponse'
+
+  /analytics/connectivity:
+    get:
+      tags: [Analytics]
+      summary: Get connectivity metrics
+      parameters:
+        - $ref: '#/components/parameters/timeRange'
+        - $ref: '#/components/parameters/userId'
+        - $ref: '#/components/parameters/networkOperator'
+      responses:
+        '200':
+          description: Connectivity events and metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectivityResponse'
+
+  # Operator Endpoints
+  /operators/{operatorId}/dashboard:
+    get:
+      tags: [Operators]
+      summary: Get operator dashboard data
+      parameters:
+        - $ref: '#/components/parameters/operatorId'
+        - $ref: '#/components/parameters/timeRange'
+        - name: region
+          in: query
+          description: Filter by region
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Operator dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperatorDashboardResponse'
+
+  # Geographic Endpoints
+  /geo/coverage:
+    get:
+      tags: [Geographic]
+      summary: Get network coverage data
+      parameters:
+        - name: boundingBox
+          in: query
+          description: Bounding box coordinates (minLng,minLat,maxLng,maxLat)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/networkOperator'
+        - name: networkType
+          in: query
+          description: Filter by network type (3G/4G/5G/WiFi)
+          schema:
+            type: string
+        - name: minSampleSize
+          in: query
+          description: Minimum samples required per area
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Network coverage data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverageResponse'
+
+  /geo/comparison:
+    get:
+      tags: [Geographic]
+      summary: Compare operators in a geographic area
+      parameters:
+        - name: boundingBox
+          in: query
+          description: Bounding box coordinates (minLng,minLat,maxLng,maxLat)
+          schema:
+            type: string
+        - name: operators
+          in: query
+          required: true
+          description: Comma-separated list of operators to compare
+          schema:
+            type: string
+        - name: metric
+          in: query
+          description: Metric to compare (signal/satisfaction/stability)
+          schema:
+            type: string
+            default: "signal"
+      responses:
+        '200':
+          description: Operator comparison data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperatorComparisonResponse'
+
+  # Temporal Endpoints
+  /temporal/patterns:
+    get:
+      tags: [Temporal]
+      summary: Analyze temporal patterns
+      parameters:
+        - $ref: '#/components/parameters/timeRange'
+        - name: metric
+          in: query
+          description: Metric to analyze (signal/latency/throughput)
+          schema:
+            type: string
+            default: "signal"
+        - $ref: '#/components/parameters/networkOperator'
+      responses:
+        '200':
+          description: Temporal patterns data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemporalPatternsResponse'
+
+  # System Endpoints
+  /system/health:
+    get:
+      tags: [System]
+      summary: Check system health
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /system/metrics:
+    get:
+      tags: [System]
+      summary: Get system metrics
+      responses:
+        '200':
+          description: System metrics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemMetricsResponse'
+
+components:
+  schemas:
+    # Request Schemas
+    FeedbackSubmission:
+      type: object
+      properties:
+        userId:
+          type: string
+        feedback:
+          $ref: '#/components/schemas/FeedbackData'
+        technicalData:
+          $ref: '#/components/schemas/TechnicalData'
+      required: [userId, feedback]
+
+    FeedbackData:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        contextInfo:
+          type: object
+          properties:
+            situationContext:
+              type: string
+          required: [situationContext]
+        additionalDetails:
+          type: string
+      required: [rating, contextInfo]
+
+    TechnicalData:
+      type: object
+      properties:
+        signalStrength:
+          type: string
+        networkType:
+          type: string
+        carrier:
+          type: string
+        latency:
+          type: string
+        throughput:
+          type: string
+
+    # Response Schemas
+    FeedbackRatingsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedbackRating'
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+
+    FeedbackRating:
+      type: object
+      properties:
+        id:
+          type: string
+        rating:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        userId:
+          type: string
+        issues:
+          type: array
+          items:
+            type: string
+        location:
+          type: object
+          nullable: true
+
+    FeedbackCommentsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedbackComment'
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+
+    FeedbackComment:
+      type: object
+      properties:
+        id:
+          type: string
+        comment:
+          type: string
+        rating:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        userId:
+          type: string
+        sentiment:
+          type: string
+          enum: [positive, negative, neutral]
+
+    QoEAnalyticsResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        period:
+          type: string
+        performanceOverview:
+          $ref: '#/components/schemas/PerformanceOverview'
+        performanceSummary:
+          $ref: '#/components/schemas/PerformanceSummary'
+        trends:
+          $ref: '#/components/schemas/TrendsData'
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+
+    RFQualityResponse:
+      type: object
+      properties:
+        period:
+          type: string
+        performanceOverview:
+          $ref: '#/components/schemas/PerformanceOverview'
+        performanceSummary:
+          $ref: '#/components/schemas/PerformanceSummary'
+        trends:
+          $ref: '#/components/schemas/TrendsData'
+        signalQualityCategories:
+          $ref: '#/components/schemas/SignalQualityCategories'
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+
+    ConnectivityResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectivityEvent'
+        totalEvents:
+          type: integer
+        timeRange:
+          $ref: '#/components/schemas/TimeRange'
+
+    OperatorDashboardResponse:
+      type: object
+      properties:
+        operatorId:
+          type: string
+        timeRange:
+          type: string
+        metrics:
+          $ref: '#/components/schemas/OperatorMetrics'
+        topIssues:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueFrequency'
+        sampleSizes:
+          $ref: '#/components/schemas/SampleSizes'
+
+    CoverageResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoverageArea'
+        metadata:
+          $ref: '#/components/schemas/CoverageMetadata'
+
+    OperatorComparisonResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OperatorComparison'
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+
+    TemporalPatternsResponse:
+      type: object
+      properties:
+        metric:
+          type: string
+        timeRange:
+          type: string
+        hourlyPatterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/HourlyPattern'
+        dailyPatterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyPattern'
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        service:
+          type: string
+
+    SystemMetricsResponse:
+      type: object
+      properties:
+        collectionStats:
+          $ref: '#/components/schemas/CollectionStats'
+        lastUpdated:
+          $ref: '#/components/schemas/LastUpdated'
+        systemHealth:
+          $ref: '#/components/schemas/SystemHealth'
+
+    # Component Schemas
+    PerformanceOverview:
+      type: object
+      properties:
+        averageScore:
+          type: number
+          format: float
+        percentageChange:
+          type: number
+          format: float
+        dataPoints:
+          type: integer
+        unit:
+          type: string
+          nullable: true
+
+    PerformanceSummary:
+      type: object
+      properties:
+        peakPerformance:
+          type: number
+          format: float
+        lowestPerformance:
+          type: number
+          format: float
+        variance:
+          type: number
+          format: float
+        trend:
+          type: number
+          format: float
+        unit:
+          type: string
+          nullable: true
+
+    TrendsData:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              time:
+                type: string
+              value:
+                type: number
+                format: float
+              hour:
+                type: integer
+                nullable: true
+              day:
+                type: integer
+                nullable: true
+        max:
+          type: number
+          format: float
+        min:
+          type: number
+          format: float
+        unit:
+          type: string
+          nullable: true
+
+    SignalQualityCategories:
+      type: object
+      properties:
+        excellent:
+          type: number
+          format: float
+        good:
+          type: number
+          format: float
+        fair:
+          type: number
+          format: float
+        poor:
+          type: number
+          format: float
+        counts:
+          type: object
+          properties:
+            excellent:
+              type: integer
+            good:
+              type: integer
+            fair:
+              type: integer
+            poor:
+              type: integer
+            total:
+              type: integer
+
+    ResponseMetadata:
+      type: object
+      properties:
+        totalMeasurements:
+          type: integer
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+        comparisonPeriodStart:
+          type: string
+          format: date-time
+          nullable: true
+        comparisonPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+
+    TimeRange:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+
+    ConnectivityEvent:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [network_change, disconnection]
+        from:
+          type: string
+          nullable: true
+        to:
+          type: string
+          nullable: true
+        duration:
+          type: number
+          format: float
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+    OperatorMetrics:
+      type: object
+      properties:
+        qoe:
+          type: object
+          properties:
+            averageRating:
+              type: number
+              format: float
+            totalRatings:
+              type: integer
+            ratingDistribution:
+              type: object
+              properties:
+                1:
+                  type: integer
+                2:
+                  type: integer
+                3:
+                  type: integer
+                4:
+                  type: integer
+                5:
+                  type: integer
+        network:
+          type: object
+          properties:
+            averageSignalStrength:
+              type: number
+              format: float
+            averageLatency:
+              type: number
+              format: float
+            averageThroughput:
+              type: number
+              format: float
+            totalMeasurements:
+              type: integer
+
+    IssueFrequency:
+      type: object
+      properties:
+        issue:
+          type: string
+        count:
+          type: integer
+        percentage:
+          type: number
+          format: float
+
+    SampleSizes:
+      type: object
+      properties:
+        feedback:
+          type: integer
+        metrics:
+          type: integer
+
+    CoverageArea:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: float
+        lng:
+          type: number
+          format: float
+        averageSignal:
+          type: number
+          format: float
+        samples:
+          type: integer
+
+    CoverageMetadata:
+      type: object
+      properties:
+        totalSamples:
+          type: integer
+        averageSignal:
+          type: number
+          format: float
+        boundingBox:
+          type: string
+          nullable: true
+        networkOperator:
+          type: string
+          nullable: true
+        networkType:
+          type: string
+          nullable: true
+
+    OperatorComparison:
+      type: object
+      properties:
+        operator:
+          type: string
+        metrics:
+          type: object
+          properties:
+            averageSignalStrength:
+              type: number
+              format: float
+            averageSatisfactionScore:
+              type: number
+              format: float
+            connectivityStability:
+              type: number
+              format: float
+            mostCommonIssue:
+              type: string
+            coverageQuality:
+              type: string
+
+    HourlyPattern:
+      type: object
+      properties:
+        hour:
+          type: integer
+        average:
+          type: number
+          format: float
+        samples:
+          type: integer
+
+    DailyPattern:
+      type: object
+      properties:
+        day:
+          type: integer
+        dayName:
+          type: string
+        average:
+          type: number
+          format: float
+        samples:
+          type: integer
+
+    CollectionStats:
+      type: object
+      properties:
+        feedback:
+          type: integer
+        signalMetrics:
+          type: integer
+        users:
+          type: integer
+
+    LastUpdated:
+      type: object
+      properties:
+        feedback:
+          type: string
+          format: date-time
+          nullable: true
+        metrics:
+          type: string
+          format: date-time
+          nullable: true
+
+    SystemHealth:
+      type: object
+      properties:
+        database:
+          type: string
+          enum: [online, offline]
+        api:
+          type: string
+          enum: [healthy, degraded, offline]
+        uptime:
+          type: number
+          format: float
+
+  parameters:
+    timeRange:
+      name: timeRange
+      in: query
+      description: Time range for data (1H, 24H, 7D, 30D)
+      schema:
+        type: string
+        default: "24H"
+        enum: [1H, 24H, 7D, 30D]
+
+    networkOperator:
+      name: networkOperator
+      in: query
+      description: Filter by network operator
+      schema:
+        type: string
+
+    userId:
+      name: userId
+      in: query
+      description: Filter by user ID
+      schema:
+        type: string
+
+    operatorId:
+      name: operatorId
+      in: path
+      required: true
+      description: Operator ID
+      schema:
+        type: string
