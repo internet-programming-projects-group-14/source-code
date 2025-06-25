@@ -180,6 +180,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
           />
         </TouchableOpacity>
       </View>
+      
 
       <ScrollView
         style={styles.scrollView}
