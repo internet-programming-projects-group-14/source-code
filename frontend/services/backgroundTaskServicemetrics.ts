@@ -15,7 +15,7 @@ const { SignalModule } = NativeModules;
 const BACKGROUND_FETCH_TASK = "background-fetch-metrics";
 const BACKGROUND_LOCATION_TASK = "background-location-metrics";
 
-const METRICS_COLLECTION_INTERVAL = 1 * 60; // 15 minutes (more realistic)
+const METRICS_COLLECTION_INTERVAL = 15 * 60;
 
 const STORAGE_KEY_PREFIX = "network_metrics_";
 const MAX_STORED_METRICS = 100; // Keep last 100 readings
@@ -147,7 +147,6 @@ async function getStoredMetrics(): Promise<Metrics[]> {
 async function syncMetricsToServer(): Promise<void> {
   // Retrieve the userId at the beginning
   const userId = await getOrCreateUserId();
-  console.log("[SyncMetrics] User ID is:", userId); // This log might be redundant here if it's already in onboarding
 
   try {
     const allMetrics = await getStoredMetrics();
@@ -157,13 +156,6 @@ async function syncMetricsToServer(): Promise<void> {
       console.log("No unsynced metrics to send.");
       return;
     }
-
-    console.log(
-      JSON.stringify({
-        userId: userId,
-        metrics: unsyncedMetrics,
-      })
-    );
 
     const response = await fetch(
       "https://qoe.onrender.com/api/background/network-feedback",
@@ -201,7 +193,6 @@ async function syncMetricsToServer(): Promise<void> {
   }
 }
 
-
 export async function registerBackgroundTasks(): Promise<boolean> {
   console.log("Attempting to register background tasks...");
   try {
@@ -224,7 +215,7 @@ export async function registerBackgroundTasks(): Promise<boolean> {
         console.log("Starting background location updates...");
         await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
           accuracy: Location.Accuracy.Balanced,
-          timeInterval: 5 * 60 * 1000, // 5 minutes
+          timeInterval: 15 * 60 * 1000, // 5 minutes
           distanceInterval: 500, // 500 meters
           showsBackgroundLocationIndicator: true, // Set to true for easier debugging
         });
@@ -294,36 +285,6 @@ export async function registerBackgroundTasks(): Promise<boolean> {
     return false;
   }
 }
-// Register background tasks
-// export async function registerBackgroundTasks(): Promise<boolean> {
-//   try {
-//     const { status: locationPermission } =
-//       await Location.requestBackgroundPermissionsAsync();
-//     if (locationPermission === "granted") {
-//       await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
-//         accuracy: Location.Accuracy.Balanced,
-//         timeInterval: 5 * 60 * 1000, // 5 minutes
-//         distanceInterval: 500, // 500 meters
-//         showsBackgroundLocationIndicator: false,
-//       });
-//       console.log("Background location registered");
-//     } else {
-//       console.warn("Background location permission not granted.");
-//     }
-
-//     await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-//       minimumInterval: METRICS_COLLECTION_INTERVAL,
-//       stopOnTerminate: false,
-//       startOnBoot: true,
-//     });
-
-//     console.log("Background fetch registered");
-//     return true;
-//   } catch (error) {
-//     console.error("Error registering background tasks:", error);
-//     return false;
-//   }
-// }
 
 // Unregister background tasks
 export async function unregisterBackgroundTasks(): Promise<void> {

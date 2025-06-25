@@ -439,7 +439,6 @@ export default function NetworkQoEApp() {
       setError(null);
 
       const hasPermissions = await requestAndroidPermissions();
-      console.log(hasPermissions);
       if (!hasPermissions) {
         throw new Error("Required permissions not granted");
       }
