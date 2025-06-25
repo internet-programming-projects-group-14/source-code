@@ -20,7 +20,7 @@ const STORAGE_KEY_PREFIX = "network_metrics_";
 const MAX_STORED_METRICS = 100; // Keep last 100 readings
 
 // Interfaces
-interface Metrics {
+export interface Metrics {
   timestamp: number;
   signalStrength: number | null;
   networkType: string | null;
@@ -40,7 +40,7 @@ interface Metrics {
 interface BackgroundTaskStatus {
   backgroundFetch: {
     registered: boolean;
-    status: BackgroundFetch.BackgroundFetchStatus | "error";
+    status: BackgroundFetch.BackgroundFetchStatus | null | string;
     statusText: string;
   };
   backgroundLocation: {
@@ -228,7 +228,7 @@ async function syncMetricsToServer(): Promise<void> {
 
     // Send to your backend API
     const response = await fetch(
-      "https://qoe-backend-ov95.onrender.com/api/background/network-feedback",
+      "https://qoe.onrender.com/api/background/network-feedback",
       {
         method: "POST",
         headers: {
@@ -319,8 +319,11 @@ export async function getBackgroundTaskStatus(): Promise<BackgroundTaskStatus> {
     return {
       backgroundFetch: {
         registered: isRegistered,
-        status: fetchStatus,
-        statusText: getBackgroundFetchStatusText(fetchStatus),
+        status: fetchStatus, // Keep the original status
+        statusText:
+          fetchStatus !== null
+            ? getBackgroundFetchStatusText(fetchStatus)
+            : "Unknown", // Fallback for null
       },
       backgroundLocation: {
         registered: locationStatus,

@@ -1,6 +1,6 @@
-// hooks/useBackgroundMetrics.js
+// hooks/useBackgroundMetrics.ts
 import { useState, useEffect, useCallback } from "react";
-import { AppState } from "react-native";
+import { AppState, AppStateStatus } from "react-native";
 import {
   registerBackgroundTasks,
   unregisterBackgroundTasks,
@@ -8,15 +8,36 @@ import {
   getStoredMetrics,
   collectNetworkMetrics,
   storeMetrics,
+  Metrics,
 } from "../services/backgroundTaskServicemetrics";
+import { BackgroundFetchStatus } from "expo-background-fetch";
 
+// Define types for background status
+interface BackgroundStatus {
+  registered: boolean;
+  status: string | BackgroundFetchStatus;
+  details?: {
+    backgroundFetch: {
+      registered: boolean;
+      status: string | BackgroundFetchStatus;
+      statusText: string;
+    };
+    backgroundLocation: {
+      registered: boolean;
+    };
+  };
+  error?: string;
+}
+
+// Hook definition
 export function useBackgroundMetrics() {
-  const [backgroundStatus, setBackgroundStatus] = useState({
+  // State variables
+  const [backgroundStatus, setBackgroundStatus] = useState<BackgroundStatus>({
     registered: false,
     status: "unknown",
   });
-  const [storedMetrics, setStoredMetrics] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [storedMetrics, setStoredMetrics] = useState<Metrics[] | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Initialize background tasks
   const initializeBackgroundTasks = useCallback(async () => {
@@ -26,15 +47,20 @@ export function useBackgroundMetrics() {
 
       const success = await registerBackgroundTasks();
       const status = await getBackgroundTaskStatus();
-
       setBackgroundStatus({
         registered: success,
-        status: status.backgroundFetch.statusText,
-        details: status,
+        status: String(status.backgroundFetch.statusText ?? "Unknown"), // Handle null case
+        details: {
+          ...status,
+          backgroundFetch: {
+            ...status.backgroundFetch,
+            status: status.backgroundFetch.status ?? "Unknown", // Handle null case
+          },
+        },
       });
 
       console.log("Background tasks initialized:", { success, status });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to initialize background tasks:", error);
       setBackgroundStatus({
         registered: false,
@@ -52,7 +78,7 @@ export function useBackgroundMetrics() {
       const metrics = await getStoredMetrics();
       setStoredMetrics(metrics);
       console.log(`Loaded ${metrics.length} stored metrics`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load stored metrics:", error);
     }
   }, []);
@@ -65,7 +91,7 @@ export function useBackgroundMetrics() {
       await storeMetrics(metrics);
       await loadStoredMetrics(); // Refresh the stored metrics
       return metrics;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to collect metrics:", error);
       throw error;
     }
@@ -76,7 +102,7 @@ export function useBackgroundMetrics() {
     try {
       await unregisterBackgroundTasks();
       console.log("Background tasks cleaned up");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to cleanup background tasks:", error);
     }
   }, []);
@@ -87,11 +113,17 @@ export function useBackgroundMetrics() {
       const status = await getBackgroundTaskStatus();
       setBackgroundStatus((prev) => ({
         ...prev,
-        status: status.backgroundFetch.statusText,
-        details: status,
+        status: status.backgroundFetch.statusText ?? "Unknown", // Handle null case
+        details: {
+          ...status,
+          backgroundFetch: {
+            ...status.backgroundFetch,
+            status: status.backgroundFetch.status ?? "Unknown", // Handle null case
+          },
+        },
       }));
       return status;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to check background status:", error);
       return null;
     }
@@ -99,7 +131,7 @@ export function useBackgroundMetrics() {
 
   // Handle app state changes
   useEffect(() => {
-    const handleAppStateChange = (nextAppState) => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
       console.log("App state changed to:", nextAppState);
       if (nextAppState === "active") {
         // Refresh data when app becomes active
@@ -121,6 +153,7 @@ export function useBackgroundMetrics() {
     loadStoredMetrics();
   }, [initializeBackgroundTasks, loadStoredMetrics]);
 
+  // Return hook values
   return {
     backgroundStatus,
     storedMetrics,
