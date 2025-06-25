@@ -7,6 +7,7 @@ import * as Device from "expo-device";
 import { Platform, NativeModules } from "react-native";
 import { measureThroughput } from "@/lib/calculateThroughput";
 import { LocationData, DeviceInfo } from "@/lib/types";
+import { getOrCreateUserId } from "@/lib/identityToken";
 
 const { SignalModule } = NativeModules;
 
@@ -47,47 +48,6 @@ interface BackgroundTaskStatus {
     registered: boolean;
   };
 }
-
-// Define the background fetch task
-// TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
-//   try {
-//     console.log("Background fetch task started");
-//     const metrics = await collectNetworkMetrics();
-//     await storeMetrics(metrics);
-//     await syncMetricsToServer();
-//     console.log("Network Background metrics collection completed");
-//     return BackgroundFetch.BackgroundFetchResult.NewData;
-//   } catch (error) {
-//     console.error("Network Background fetch error:", error);
-//     return BackgroundFetch.BackgroundFetchResult.Failed;
-//   }
-// });
-
-// // Define background location task
-// TaskManager.defineTask(
-//   BACKGROUND_LOCATION_TASK,
-//   async ({
-//     data,
-//     error,
-//   }: TaskManager.TaskManagerTaskBody<
-//     { locations: Location.LocationObject[] } | undefined
-//   >) => {
-//     if (error) {
-//       console.error("Background location error:", error);
-//       return;
-//     }
-//     if (data?.locations) {
-//       console.log("Background location update:", data.locations[0]);
-//       await AsyncStorage.setItem(
-//         "last_background_location",
-//         JSON.stringify({
-//           location: data.locations[0].coords,
-//           timestamp: Date.now(),
-//         })
-//       );
-//     }
-//   }
-// );
 
 // Collect comprehensive network metrics
 async function collectNetworkMetrics(): Promise<Metrics> {
@@ -183,7 +143,12 @@ async function getStoredMetrics(): Promise<Metrics[]> {
 }
 
 // Sync metrics to server
+
 async function syncMetricsToServer(): Promise<void> {
+  // Retrieve the userId at the beginning
+  const userId = await getOrCreateUserId();
+  console.log("[SyncMetrics] User ID is:", userId); // This log might be redundant here if it's already in onboarding
+
   try {
     const allMetrics = await getStoredMetrics();
     const unsyncedMetrics = allMetrics.filter((m) => !m.synced);
@@ -193,12 +158,22 @@ async function syncMetricsToServer(): Promise<void> {
       return;
     }
 
+    console.log(
+      JSON.stringify({
+        userId: userId,
+        metrics: unsyncedMetrics,
+      })
+    );
+
     const response = await fetch(
       "https://qoe.onrender.com/api/background/network-feedback",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ metrics: unsyncedMetrics }),
+        body: JSON.stringify({
+          userId: userId,
+          metrics: unsyncedMetrics,
+        }),
       }
     );
 
@@ -217,11 +192,15 @@ async function syncMetricsToServer(): Promise<void> {
         "Failed to sync metrics, server responded with:",
         response.status
       );
+      // Optional: Log response body for more details if server sends error messages
+      const errorBody = await response.text();
+      console.error("Server error response:", errorBody);
     }
   } catch (error) {
     console.error("Error syncing metrics:", error);
   }
 }
+
 
 export async function registerBackgroundTasks(): Promise<boolean> {
   console.log("Attempting to register background tasks...");
