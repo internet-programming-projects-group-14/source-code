@@ -161,60 +161,85 @@ app.post("/api/background/network-feedback", async (req, res) => {
   try {
     const { userId, metrics } = req.body;
 
-    const timestamp = admin.firestore.Timestamp.now();
+    // --- Validation: Ensure metrics is an array ---
+    if (!Array.isArray(metrics)) {
+      console.warn("Received metrics is not an array:", metrics);
+      return res.status(400).json({
+        success: false,
+        error: "Invalid request: 'metrics' must be an array.",
+      });
+    }
 
-    // Extract data from metrics
-    const {
-      signalStrength,
-      networkType,
-      carrier,
-      frequency,
-      bandwidth,
-      cellId,
-      pci,
-      throughput,
-      latency,
-      location,
-      device,
-    } = metrics;
+    // --- Process each metric in the array ---
+    const firestorePromises = metrics.map(async (metric) => {
+      // Use the timestamp from the client metric
+      const timestamp = admin.firestore.Timestamp.fromMillis(metric.timestamp);
 
-    // Store user if not exists
-    const userRef = db.collection("users").doc(userId);
-    const userDoc = await userRef.get();
+      // Destructure fields from the *current single metric object*
+      const {
+        signalStrength,
+        networkType,
+        carrier,
+        frequency,
+        bandwidth,
+        cellId,
+        pci,
+        throughput,
+        latency,
+        location,
+        device,
+        error: metricError, // Alias to avoid conflict with outer catch error
+      } = metric;
 
-    // Store network metrics
-    await db.collection("signalMetrics").add({
-      user_id: userId,
-      timestamp,
-      signal_strength: signalStrength || "Unknown",
-      network_type: networkType || "Unknown",
-      operator: carrier || "Unknown",
-      frequency: frequency || "Unknown",
-      bandwidth: bandwidth || "Unknown",
-      cell_id: cellId || "Unknown",
-      pci: pci || "Unknown",
-      throughput: throughput || "Unknown",
-      latency: latency || "Unknown",
-      location: location
-        ? {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            accuracy: location.accuracy || "Unknown",
-          }
-        : "Unknown",
-      device_info: {
-        platform: device.platform || "Unknown",
-        model: device.model || "Unknown",
-        os_version: device.osVersion || "Unknown",
-      },
+      // Construct the document data for Firestore
+      return db.collection("signalMetrics").add({
+        user_id: userId,
+        timestamp, // Use the client's timestamp
+        signal_strength:
+          signalStrength !== undefined && signalStrength !== null
+            ? signalStrength // Keep 0 or null as valid values
+            : "Unknown",
+        network_type: networkType || "Unknown",
+        operator: carrier || "Unknown",
+        frequency: frequency || "Unknown",
+        bandwidth: bandwidth || "Unknown",
+        cell_id: cellId || "Unknown",
+        pci: pci || "Unknown",
+        throughput: throughput || "Unknown",
+        latency:
+          latency !== undefined && latency !== null
+            ? latency // Keep 0 or null as valid values
+            : "Unknown",
+        location: location
+          ? {
+              latitude: location.latitude,
+              longitude: location.longitude,
+              accuracy:
+                location.accuracy !== undefined && location.accuracy !== null
+                  ? location.accuracy
+                  : "Unknown",
+            }
+          : "Unknown", // If location is null from frontend
+        device_info: {
+          platform: device?.platform || "Unknown", // Use optional chaining
+          model: device?.model || "Unknown",
+          os_version: device?.osVersion || "Unknown",
+        },
+        // Include the error field if it exists in the metric object
+        error: metricError || null,
+      });
     });
+
+    // Wait for all Firestore add operations to complete
+    await Promise.all(firestorePromises);
 
     res.status(201).json({
       success: true,
       userId,
-      message: "Network metrics submitted successfully.",
+      message: `${metrics.length} network metrics submitted successfully.`,
     });
   } catch (error) {
+    // This will catch errors during Firestore operations or invalid data processing
     console.error("Error submitting network metrics:", error);
     res.status(500).json({
       success: false,
