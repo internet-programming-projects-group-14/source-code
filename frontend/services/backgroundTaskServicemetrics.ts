@@ -15,7 +15,7 @@ const BACKGROUND_FETCH_TASK = "background-fetch-metrics";
 const BACKGROUND_LOCATION_TASK = "background-location-metrics";
 
 // Configuration
-const METRICS_COLLECTION_INTERVAL = 30 * 1000; // 15 seconds for testing
+const METRICS_COLLECTION_INTERVAL = 30 * 1000; // 30 seconds for testing
 
 const STORAGE_KEY_PREFIX = "network_metrics_";
 const MAX_STORED_METRICS = 100; // Keep last 100 readings
