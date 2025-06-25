@@ -8,7 +8,7 @@ import * as Device from "expo-device";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { RelativePathString, useRouter } from "expo-router";
-import { ArrowDown } from "lucide-react-native";
+import { ArrowDown, RefreshCw } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -178,10 +178,11 @@ export default function NetworkQoEApp() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDeviceMetrics, setIsLoadingDeviceMetrics] = useState(true);
-  const [isLoadingNetworkMetrics, setIsLoadingNetworkMetrics] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] =
     useState<Location.LocationGeocodedAddress | null>(null);
+
   const [backgroundTaskStatus, setBackgroundTaskStatus] =
     useState<string>("Unknown");
 
@@ -522,7 +523,6 @@ export default function NetworkQoEApp() {
 
   const fetchNetworkMetrics = async () => {
     try {
-      setIsLoadingNetworkMetrics(true);
       setError(null);
 
       // Connection & throughput
@@ -581,8 +581,6 @@ export default function NetworkQoEApp() {
       setError(
         err instanceof Error ? err.message : "Failed to collect network metrics"
       );
-    } finally {
-      setIsLoadingNetworkMetrics(false);
     }
   };
 
@@ -601,8 +599,15 @@ export default function NetworkQoEApp() {
     }
   };
 
-  const handleRetry = () => {
-    fetchMetrics();
+  const handleRetry = async () => {
+    try {
+      setIsRefreshing(true);
+      await fetchMetrics();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   useEffect(() => {
@@ -723,14 +728,19 @@ export default function NetworkQoEApp() {
             </Text>
           </View>
         </View>
-        <View style={{ flexDirection: "row", gap: 10, alignItems:'center' }}>
-          {/* Test Notification Button */}
+        <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
           <TouchableOpacity
-            onPress={testNotification}
-            style={styles.testButton}
+            onPress={handleRetry}
+            style={[styles.refreshButton, isRefreshing && styles.refreshing]}
+            disabled={isRefreshing}
           >
-            <Feather name="bell" size={20} color="#fff" />
+            <RefreshCw
+              color="white"
+              size={20}
+              style={[isRefreshing && { transform: [{ rotate: "360deg" }] }]}
+            />
           </TouchableOpacity>
+
           <TouchableOpacity onPress={() => router.push("/settings")}>
             <Feather name="settings" size={24} color="#fff" />
           </TouchableOpacity>
@@ -941,6 +951,14 @@ const styles = StyleSheet.create({
   },
   cardHeader: { display: "flex" },
   cardTitle: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  refreshButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  refreshing: {
+    opacity: 0.6,
+  },
   statusBadge: { color: "#10b981", marginTop: 6, marginBottom: 12 },
   metricBlock: {
     flexDirection: "row",

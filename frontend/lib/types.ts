@@ -32,6 +32,18 @@ export type NetworkMetrics = {
   };
 };
 
+export interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+}
+
+export interface DeviceInfo {
+  platform: string;
+  model: string | null;
+  osVersion: string | null;
+}
+
 // Analytics
 export interface AnalyticsData {
   time: string;

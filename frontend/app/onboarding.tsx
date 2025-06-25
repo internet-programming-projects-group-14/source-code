@@ -1,3 +1,4 @@
+import { useBackgroundMetrics } from "@/hooks/useBackgroundMetrics";
 import { getOrCreateUserId } from "@/lib/identityToken";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
@@ -19,6 +20,7 @@ import React, { useState } from "react";
 import {
   Alert,
   Dimensions,
+  Linking,
   PermissionsAndroid,
   Platform,
   SafeAreaView,
@@ -35,30 +37,68 @@ const { height } = Dimensions.get("window");
 
 interface Permissions {
   location: boolean;
+  backgroundLocation: boolean; // True if background (Always) location is specifically granted
   phoneState: boolean;
   notifications: boolean;
 }
 
 const OnboardingScreen = () => {
   const router = useRouter();
+  const { startBackgroundTasks } = useBackgroundMetrics();
   const [currentStep, setCurrentStep] = useState(0);
   const [permissions, setPermissions] = useState<Permissions>({
     location: false,
+    backgroundLocation: false,
     phoneState: false,
     notifications: false,
   });
 
   const requestLocation = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    // First request foreground permissions
+    const { status: foregroundStatus } =
+      await Location.requestForegroundPermissionsAsync();
 
-    if (status === "granted") {
-      setPermissions((prev) => ({ ...prev, location: true }));
+    if (foregroundStatus === "granted") {
+      // Then request background permissions (Always)
+      const { status: backgroundStatus } =
+        await Location.requestBackgroundPermissionsAsync();
+
+      if (backgroundStatus === "granted") {
+        setPermissions((prev) => ({
+          ...prev,
+          location: true,
+          backgroundLocation: true,
+        }));
+      } else {
+        setPermissions((prev) => ({
+          ...prev,
+          location: true,
+          backgroundLocation: false,
+        }));
+
+        Alert.alert(
+          "Always Location Required",
+          "For optimal network analysis and real-time monitoring, this app requires 'Always' location access. Please go to Settings > Privacy & Security > Location Services > [App Name] and select 'Always'.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
     } else {
-      setPermissions((prev) => ({ ...prev, location: false }));
+      setPermissions((prev) => ({
+        ...prev,
+        location: false,
+        backgroundLocation: false,
+      }));
 
       Alert.alert(
-        "Permission Denied",
-        "Location permission is required for accurate network analysis."
+        "Location Permission Required",
+        "Location permission is essential for network analysis. Please enable location services and select 'Always' when prompted.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Open Settings", onPress: () => Linking.openSettings() },
+        ]
       );
     }
   };
@@ -74,8 +114,12 @@ const OnboardingScreen = () => {
       setPermissions((prev) => ({ ...prev, phoneState: false }));
 
       Alert.alert(
-        "Permission Denied",
-        "Phone State permission is required for accurate network analysis."
+        "Phone State Permission Required",
+        "Phone State permission is essential for accurate network analysis and signal strength monitoring. Please enable this permission in your device settings.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Open Settings", onPress: () => Linking.openSettings() },
+        ]
       );
     }
   };
@@ -188,7 +232,7 @@ const OnboardingScreen = () => {
     </View>
   );
 
-  const PermissionsContent = () => (
+  const PermissionsContent: React.FC = () => (
     <View style={styles.permissionsContainer}>
       <View style={styles.permissionItem}>
         <View style={styles.permissionHeader}>
@@ -211,18 +255,21 @@ const OnboardingScreen = () => {
         <TouchableOpacity
           style={[
             styles.permissionButton,
-            permissions.location && styles.permissionButtonEnabled,
+            permissions.location && styles.permissionButtonEnabled, // Apply enabled style if any location is granted
           ]}
-          onPress={requestLocation}
+          onPress={() => requestLocation()}
         >
           {permissions.location && <CheckCircle size={16} color="white" />}
           <Text style={styles.permissionButtonText}>
-            {permissions.location
-              ? "Location Enabled"
+            {permissions.backgroundLocation
+              ? "Location Enabled (Always)" // If background is granted
+              : permissions.location
+              ? "Location Enabled (When In Use)" // If only foreground is granted
               : "Enable Location Services"}
           </Text>
         </TouchableOpacity>
       </View>
+
       <View style={styles.permissionItem}>
         <View style={styles.permissionHeader}>
           <View style={[styles.featureIcon, { backgroundColor: "#3B82F620" }]}>
@@ -247,9 +294,11 @@ const OnboardingScreen = () => {
             styles.permissionButtonOutline,
             permissions.phoneState && styles.permissionButtonEnabledPurple,
           ]}
-          onPress={requestPhoneStatePermission}
+          onPress={() => requestPhoneStatePermission()}
         >
-          {permissions.phoneState && <CheckCircle size={16} color="white" />}
+          {permissions.phoneState ? (
+            <CheckCircle size={16} color="white" />
+          ) : null}
           <Text style={styles.permissionButtonText}>
             {permissions.phoneState
               ? "Phone State Enabled"
@@ -282,9 +331,11 @@ const OnboardingScreen = () => {
             styles.permissionButtonOutline,
             permissions.notifications && styles.permissionButtonEnabledBlue,
           ]}
-          onPress={requestNotificationPermission}
+          onPress={() => requestNotificationPermission()} // Pass setPermissions
         >
-          {permissions.notifications && <CheckCircle size={16} color="white" />}
+          {permissions.notifications ? (
+            <CheckCircle size={16} color="white" />
+          ) : null}
           <Text style={styles.permissionButtonText}>
             {permissions.notifications
               ? "Notifications Enabled"
@@ -367,12 +418,29 @@ const OnboardingScreen = () => {
 
   const currentStepData = steps[currentStep];
   const isLastStep = currentStep === steps.length - 1;
-  const canProceed = currentStep !== 3 || permissions.location;
+
+  const canProceedToNextStep = () => {
+    // Require both location and backgroundLocation (Always) permissions
+    return (
+      permissions.location &&
+      permissions.backgroundLocation &&
+      permissions.phoneState
+    );
+  };
+  const canProceed = currentStep !== 3 || canProceedToNextStep();
 
   const handleNext = async () => {
+    if (currentStep === 3 && canProceedToNextStep()) {
+      console.log(
+        "[Onboarding] All required permissions granted. Attempting to start background tasks."
+      );
+      await startBackgroundTasks(); // <--- Call this function here!
+      console.log("[Onboarding] Background tasks setup initiated.");
+    }
+
     if (isLastStep) {
       const userId = await getOrCreateUserId();
-      console.log("User ID is:", userId);
+      console.log("[Onboarding] User ID is:", userId);
       router.replace("/");
     } else {
       setCurrentStep((prev) => prev + 1);
@@ -460,15 +528,18 @@ const OnboardingScreen = () => {
             <ChevronRight size={16} color="white" />
           </TouchableOpacity>
         </View>
+        {currentStep === 3 && !canProceedToNextStep() && (
+          <View style={styles.warningContainer}>
+            <Text style={styles.warningText}>
+              {!permissions.location || !permissions.backgroundLocation
+                ? "  Location permission is required to continue"
+                : !permissions.phoneState
+                ? "Phone State permission is required "
+                : "Required permissions are needed to continue"}
+            </Text>
+          </View>
+        )}
       </SafeAreaView>
-
-      {currentStep === 3 && !permissions.location && (
-        <View style={styles.warningContainer}>
-          <Text style={styles.warningText}>
-            Location permission is required to continue
-          </Text>
-        </View>
-      )}
     </SafeAreaView>
   );
 };
@@ -870,9 +941,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "rgba(255, 255, 255, 0.6)",
   },
+  settingsButton: {
+    backgroundColor: "#3B82F6",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  settingsButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   warningContainer: {
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 2,
   },
   warningText: {
     fontSize: 12,
