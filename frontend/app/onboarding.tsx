@@ -1,3 +1,4 @@
+import { useBackgroundMetrics } from "@/hooks/useBackgroundMetrics";
 import { getOrCreateUserId } from "@/lib/identityToken";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
@@ -43,6 +44,7 @@ interface Permissions {
 
 const OnboardingScreen = () => {
   const router = useRouter();
+  const { startBackgroundTasks } = useBackgroundMetrics();
   const [currentStep, setCurrentStep] = useState(0);
   const [permissions, setPermissions] = useState<Permissions>({
     location: false,
@@ -50,21 +52,6 @@ const OnboardingScreen = () => {
     phoneState: false,
     notifications: false,
   });
-
-  // const requestLocation = async () => {
-  //   const { status } = await Location.requestForegroundPermissionsAsync();
-
-  //   if (status === "granted") {
-  //     setPermissions((prev) => ({ ...prev, location: true }));
-  //   } else {
-  //     setPermissions((prev) => ({ ...prev, location: false }));
-
-  //     Alert.alert(
-  //       "Permission Denied",
-  //       "Location permission is required for accurate network analysis."
-  //     );
-  //   }
-  // };
 
   const requestLocation = async () => {
     // First request foreground permissions
@@ -443,9 +430,17 @@ const OnboardingScreen = () => {
   const canProceed = currentStep !== 3 || canProceedToNextStep();
 
   const handleNext = async () => {
+    if (currentStep === 3 && canProceedToNextStep()) {
+      console.log(
+        "[Onboarding] All required permissions granted. Attempting to start background tasks."
+      );
+      await startBackgroundTasks(); // <--- Call this function here!
+      console.log("[Onboarding] Background tasks setup initiated.");
+    }
+
     if (isLastStep) {
       const userId = await getOrCreateUserId();
-      console.log("User ID is:", userId);
+      console.log("[Onboarding] User ID is:", userId);
       router.replace("/");
     } else {
       setCurrentStep((prev) => prev + 1);

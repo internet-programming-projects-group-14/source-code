@@ -16,6 +16,7 @@ import {
 } from "@/components/ErrorBoundary";
 import { useLaunchState } from "@/hooks/useLaunch";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useBackgroundMetrics } from "@/hooks/useBackgroundMetrics";
 
 function AppLayout() {
   const colorScheme = useColorScheme();
@@ -26,6 +27,18 @@ function AppLayout() {
 
   useEffect(() => {
     checkFirstLaunch();
+  }, []);
+
+  const { backgroundStatus, storedMetrics, isLoading, refresh, cleanup } =
+    useBackgroundMetrics();
+
+  useEffect(() => {
+    console.log("[RootLayout] Root layout component mounted.");
+    // Optional: Log status for initial check
+    console.log(
+      "[RootLayout] Initial background status:",
+      JSON.stringify(backgroundStatus)
+    );
   }, []);
 
   // Block rendering while fonts or launch state are loading

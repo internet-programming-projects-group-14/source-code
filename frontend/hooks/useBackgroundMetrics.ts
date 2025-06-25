@@ -7,7 +7,7 @@ import {
   getBackgroundTaskStatus,
   getStoredMetrics,
   Metrics,
-} from "../services/backgroundTaskServicemetrics"; // <-- FIXED IMPORT PATH
+} from "../services/backgroundTaskServicemetrics";
 
 // A simpler, more direct status type
 interface BackgroundStatus {
@@ -22,7 +22,7 @@ export function useBackgroundMetrics() {
   const [backgroundStatus, setBackgroundStatus] = useState<BackgroundStatus>({
     fetchRegistered: false,
     locationRegistered: false,
-    statusText: "Initializing...",
+    statusText: "Not Registered",
   });
   const [storedMetrics, setStoredMetrics] = useState<Metrics[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -56,34 +56,39 @@ export function useBackgroundMetrics() {
     }
   }, []);
 
-  const initialize = useCallback(async () => {
+  const startBackgroundTasks = useCallback(async () => {
+    console.log(
+      "[useBackgroundMetrics] Manually triggering background task registration..."
+    );
     setIsLoading(true);
-    console.log("[useBackgroundMetrics] Calling registerBackgroundTasks...");
     try {
-      await registerBackgroundTasks(); // This is where the core registration happens
+      const success = await registerBackgroundTasks(); // This is the core call
       console.log(
-        "[useBackgroundMetrics] registerBackgroundTasks finished. Checking final status..."
+        `[useBackgroundMetrics] registerBackgroundTasks returned: ${success}`
       );
-      await checkStatus(); // Update the hook's internal status state
-      await loadStoredMetrics();
+      await checkStatus(); // Refresh status after registration attempt
+      await loadStoredMetrics(); // Refresh metrics
     } catch (error: unknown) {
       const message =
-        error instanceof Error ? error.message : "An unknown error occurred";
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred during startBackgroundTasks";
       console.error(
-        "[useBackgroundMetrics] Failed to initialize background tasks:",
+        "[useBackgroundMetrics] Error starting background tasks:",
         error
       );
-      setBackgroundStatus({
-        fetchRegistered: false,
-        locationRegistered: false,
-        statusText: "Error during init",
+      setBackgroundStatus((prev) => ({
+        ...prev,
+        statusText: "Error",
         error: message,
-      });
+      }));
     } finally {
       setIsLoading(false);
-      console.log("[useBackgroundMetrics] Initialization complete.");
+      console.log(
+        "[useBackgroundMetrics] startBackgroundTasks process complete."
+      );
     }
-  }, [checkStatus, loadStoredMetrics]); // Dependencies are important
+  }, [checkStatus, loadStoredMetrics]);
 
   const cleanup = useCallback(async () => {
     try {
@@ -95,11 +100,26 @@ export function useBackgroundMetrics() {
     }
   }, [checkStatus]);
 
-  // Handle app state changes to refresh data
+  // Initial load and status check (without attempting to register)
+  useEffect(() => {
+    console.log(
+      "[useBackgroundMetrics] Hook mounted. Performing initial status check and loading metrics."
+    );
+    setIsLoading(true);
+    const initialLoad = async () => {
+      await checkStatus();
+      await loadStoredMetrics();
+      setIsLoading(false);
+    };
+    initialLoad();
+  }, [checkStatus, loadStoredMetrics]); // Dependencies for initial effect
+
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === "active") {
-        console.log("App is active, refreshing status and metrics...");
+        console.log(
+          "[useBackgroundMetrics] App is active, refreshing status and metrics..."
+        );
         checkStatus();
         loadStoredMetrics();
       }
@@ -114,15 +134,12 @@ export function useBackgroundMetrics() {
     };
   }, [checkStatus, loadStoredMetrics]);
 
-  // Initialize on mount
-  useEffect(() => {
-    console.log("[useBackgroundMetrics] Hook mounted. Initializing tasks.");
-    initialize();
-  }, [initialize]);
-
   return {
     backgroundStatus,
     storedMetrics,
+    startBackgroundTasks,
+    loadStoredMetrics,
+    checkStatus,
     isLoading,
     refresh: () => {
       checkStatus();
