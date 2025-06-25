@@ -10,18 +10,18 @@ import geoRouter from "./routes/geo.mjs";
 import temporalRouter from "./routes/temporal.mjs";
 import { db, admin } from "./firebase.mjs";
 import operatorRouter from "./routes/operators.mjs";
-import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs'
+import swaggerUi from "swagger-ui-express";
+import YAML from "yamljs";
 
 const app = express();
 
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-const swaggerDocument = YAML.load('./swagger.yaml');
+const swaggerDocument = YAML.load("./swagger.yaml");
 
 // Rate limiting
 const limiter = rateLimit({
@@ -36,8 +36,7 @@ app.get("/", (req, res) => {
   });
 });
 
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use("/api/", limiter);
 
@@ -101,11 +100,6 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
     // Store user if not exists
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
-    if (!userDoc.exists) {
-      await userRef.set({
-        permissions: feedback.permissions || [],
-      });
-    }
 
     // Store feedback
     await db
@@ -163,6 +157,72 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
   }
 });
 
+app.post("/api/background/network-feedback", async (req, res) => {
+  try {
+    const { userId, metrics } = req.body;
+
+    const timestamp = admin.firestore.Timestamp.now();
+
+    // Extract data from metrics
+    const {
+      signalStrength,
+      networkType,
+      carrier,
+      frequency,
+      bandwidth,
+      cellId,
+      pci,
+      throughput,
+      latency,
+      location,
+      device,
+    } = metrics;
+
+    // Store user if not exists
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    // Store network metrics
+    await db.collection("signalMetrics").add({
+      user_id: userId,
+      timestamp,
+      signal_strength: signalStrength || "Unknown",
+      network_type: networkType || "Unknown",
+      operator: carrier || "Unknown",
+      frequency: frequency || "Unknown",
+      bandwidth: bandwidth || "Unknown",
+      cell_id: cellId || "Unknown",
+      pci: pci || "Unknown",
+      throughput: throughput || "Unknown",
+      latency: latency || "Unknown",
+      location: location
+        ? {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            accuracy: location.accuracy || "Unknown",
+          }
+        : "Unknown",
+      device_info: {
+        platform: device.platform || "Unknown",
+        model: device.model || "Unknown",
+        os_version: device.osVersion || "Unknown",
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      userId,
+      message: "Network metrics submitted successfully.",
+    });
+  } catch (error) {
+    console.error("Error submitting network metrics:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+
 //Mount route module
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/community", communityAnalyticsRouter);
@@ -170,7 +230,6 @@ app.use("/api/operators", operatorRouter);
 app.use("/api/feedback", feedbackRouter);
 app.use("/api/geo", geoRouter);
 app.use("/api/temporal", temporalRouter);
-
 
 // Ping Google
 app.get("/ping-google", async (req, res) => {
@@ -208,7 +267,7 @@ app.use((error, req, res, next) => {
   });
 });
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {

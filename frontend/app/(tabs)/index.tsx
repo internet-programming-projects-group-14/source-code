@@ -34,6 +34,7 @@ import {
   storeSignalStrength,
   unregisterBackgroundTasks,
 } from "../../services/backgroundTaskService";
+import { useBackgroundMetrics } from "../../hooks/useBackgroundMetrics";
 
 const { SignalModule } = NativeModules;
 const { width, height } = Dimensions.get("window");
@@ -182,6 +183,17 @@ export default function NetworkQoEApp() {
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] =
     useState<Location.LocationGeocodedAddress | null>(null);
+
+  // Background metrics hook
+
+  const {
+    backgroundStatus,
+    storedMetrics,
+    isLoading: isBackgroundLoading,
+    collectMetricsNow,
+    checkStatus,
+  } = useBackgroundMetrics();
+
   const [backgroundTaskStatus, setBackgroundTaskStatus] =
     useState<string>("Unknown");
 
@@ -588,6 +600,14 @@ export default function NetworkQoEApp() {
     try {
       await fetchDeviceMetrics();
       await fetchNetworkMetrics();
+
+      // Also collect a background metrics sample
+      try {
+        await collectMetricsNow();
+        console.log("Background metrics collected successfully");
+      } catch (bgError) {
+        console.log("Background metrics collection failed:", bgError);
+      }
     } catch (err) {
       console.error("Error collecting metrics:", err);
       setError(
