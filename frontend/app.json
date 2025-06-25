@@ -15,8 +15,7 @@
           "background-fetch",
           "background-processing",
           "location",
-          "remote-notification",
-          "background-fetch"
+          "remote-notification"
         ],
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to collect network quality metrics based on your location.",
         "NSLocationWhenInUseUsageDescription": "This app needs location access to collect network quality metrics.",
