@@ -6,8 +6,6 @@ import {
   unregisterBackgroundTasks,
   getBackgroundTaskStatus,
   getStoredMetrics,
-  collectNetworkMetrics,
-  storeMetrics,
   Metrics,
 } from "../services/backgroundTaskServicemetrics";
 import { BackgroundFetchStatus } from "expo-background-fetch";
@@ -43,7 +41,7 @@ export function useBackgroundMetrics() {
   const initializeBackgroundTasks = useCallback(async () => {
     try {
       setIsLoading(true);
-      console.log("Initializing background tasks...");
+      console.log("Initializing network background tasks...");
 
       const success = await registerBackgroundTasks();
       const status = await getBackgroundTaskStatus();
@@ -59,7 +57,10 @@ export function useBackgroundMetrics() {
         },
       });
 
-      console.log("Background tasks initialized:", { success, status });
+      console.log("Network metrics background tasks initialized:", {
+        success,
+        status,
+      });
     } catch (error: any) {
       console.error("Failed to initialize background tasks:", error);
       setBackgroundStatus({
@@ -82,20 +83,6 @@ export function useBackgroundMetrics() {
       console.error("Failed to load stored metrics:", error);
     }
   }, []);
-
-  // Manually collect metrics (for immediate collection)
-  const collectMetricsNow = useCallback(async () => {
-    try {
-      console.log("Collecting metrics manually...");
-      const metrics = await collectNetworkMetrics();
-      await storeMetrics(metrics);
-      await loadStoredMetrics(); // Refresh the stored metrics
-      return metrics;
-    } catch (error: any) {
-      console.error("Failed to collect metrics:", error);
-      throw error;
-    }
-  }, [loadStoredMetrics]);
 
   // Cleanup background tasks
   const cleanup = useCallback(async () => {
@@ -160,7 +147,6 @@ export function useBackgroundMetrics() {
     isLoading,
     initializeBackgroundTasks,
     loadStoredMetrics,
-    collectMetricsNow,
     cleanup,
     checkStatus,
   };

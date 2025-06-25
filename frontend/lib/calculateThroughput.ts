@@ -1,6 +1,7 @@
 export async function measureThroughput() {
   // Use a larger file for more accurate measurement
-  const testUrl = "https://speed.cloudflare.com/__down?bytes=25000000"; // 25MB
+  // const testUrl = "https://speed.cloudflare.com/__down?bytes=5000000"; // 25MB
+  const testUrl = ""; // 25MB
   const expectedSizeBytes = 25 * 1024 * 1024; // 25MB in bytes
 
   try {

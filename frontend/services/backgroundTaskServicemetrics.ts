@@ -15,7 +15,8 @@ const BACKGROUND_FETCH_TASK = "background-fetch-metrics";
 const BACKGROUND_LOCATION_TASK = "background-location-metrics";
 
 // Configuration
-const METRICS_COLLECTION_INTERVAL = 15 * 60 * 1000; // 15 minutes
+const METRICS_COLLECTION_INTERVAL = 30 * 1000; // 15 seconds for testing
+
 const STORAGE_KEY_PREFIX = "network_metrics_";
 const MAX_STORED_METRICS = 100; // Keep last 100 readings
 
@@ -62,10 +63,10 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
     // Optional: Send to server if needed
     await syncMetricsToServer();
 
-    console.log("Background metrics collection completed");
+    console.log("Network Background metrics collection completed");
     return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (error) {
-    console.error("Background fetch error:", error);
+    console.error("Network Background fetch error:", error);
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });
@@ -218,6 +219,7 @@ async function getStoredMetrics(): Promise<Metrics[]> {
 
 // Sync metrics to server (optional)
 async function syncMetricsToServer(): Promise<void> {
+  console.log("I am syncing to server");
   try {
     const metrics = await getStoredMetrics();
     const unsyncedMetrics = metrics.filter((m) => !m.synced);
@@ -289,7 +291,7 @@ export async function registerBackgroundTasks(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error("Error registering background tasks:", error);
+    console.error("Error registering network metrics background tasks:", error);
     return false;
   }
 }
@@ -297,7 +299,7 @@ export async function registerBackgroundTasks(): Promise<boolean> {
 // Unregister background tasks
 export async function unregisterBackgroundTasks(): Promise<void> {
   try {
-    await BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
+    await TaskManager.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
     await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
     console.log("Background tasks unregistered");
   } catch (error) {
