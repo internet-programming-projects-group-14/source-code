@@ -385,7 +385,7 @@ const OnboardingScreen = () => {
   const steps = [
     {
       id: "welcome",
-      title: "Welcome to Network QoE Monitor",
+      title: "Welcome to Vital Signal",
       subtitle: "Network quality analysis at your fingertips",
       content: <WelcomeContent />,
     },
