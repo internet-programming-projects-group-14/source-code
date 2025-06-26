@@ -9,8 +9,8 @@ export const SIGNAL_MONITORING_TASK = 'signal-monitoring-task';
 
 // Configuration
 const TASK_CONFIG = {
-  periodicInterval: 1 * 60, // 1 minute in seconds
-  minTimeBetweenPopups: 30 * 1000, // 30 seconds in milliseconds
+  periodicInterval: 30 * 60, // 30 minutes in seconds
+  minTimeBetweenPopups: 420 * 1000, // 7 minutes (420 seconds) in milliseconds
   signalThreshold: -85,
 };
 
