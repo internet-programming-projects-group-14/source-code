@@ -195,7 +195,7 @@ export default function NetworkQoEApp() {
 
   const config = {
     signalThreshold: -85, // dBm threshold for poor signal
-    minTimeBetweenPopups: 30 * 1000, // 30 seconds between popups for testing
+    minTimeBetweenPopups: 420 * 1000, //5 minutes between popups for testing
   };
 
   // Notification permission and setup functions
