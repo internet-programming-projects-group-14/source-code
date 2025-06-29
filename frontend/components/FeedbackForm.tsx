@@ -1,10 +1,11 @@
 import { getIssueTypesByRating } from "@/lib/getIssuesByRating";
+
 import { getOrCreateUserId } from "@/lib/identityToken";
 import { NetworkMetrics } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -18,11 +19,16 @@ import {
   View,
 } from "react-native";
 import Constants from "expo-constants";
+import {
+  SyncStatus,
+  offlineFeedbackManager,
+} from "@/lib/offlineFeedbackManager";
+import NetInfo from "@react-native-community/netinfo";
 
-if (!Constants.expoConfig?.extra?.API_URL) {
-  console.error("API_URL is not defined in app.config.js!");
-}
-const apiUrl = Constants.expoConfig.extra.API_URL;
+// if (!Constants.expoConfig?.extra?.API_URL) {
+//   console.error("API_URL is not defined in app.config.js!");
+// }
+// const apiUrl = Constants.expoConfig.extra.API_URL;
 
 interface FeedbackPageProps {
   onBack: () => void;
@@ -48,46 +54,50 @@ export default function FeedbackPage({
   const [selectedContext, setSelectedContext] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [submissionResult, setSubmissionResult] = useState<{
+    success: boolean;
+    offline: boolean;
+    id: string;
+  } | null>(null);
+
+  useEffect(() => {
+    // Monitor network connectivity
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOnline(state.isConnected || false);
+    });
+
+    // Listen to sync status updates
+    const handleSyncStatusUpdate = (status: SyncStatus) => {
+      setSyncStatus(status);
+    };
+
+    offlineFeedbackManager.addSyncStatusListener(handleSyncStatusUpdate);
+
+    // Initial sync status load
+    offlineFeedbackManager.getSyncStatus().then(setSyncStatus);
+
+    return () => {
+      unsubscribe();
+      offlineFeedbackManager.removeSyncStatusListener(handleSyncStatusUpdate);
+    };
+  }, []);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    const userId = await getOrCreateUserId();
 
-    if (!networkMetrics) {
-      console.warn("No network metrics available");
-      Alert.alert("Error", "Network metrics missing. Please try again.");
-      setIsSubmitting(false);
-      return;
-    }
+    try {
+      const userId = await getOrCreateUserId();
 
-    const {
-      signalStrength,
-      networkType,
-      carrier,
-      frequency,
-      bandwidth,
-      cellId,
-      pci,
-      dataSpeed,
-      uploadSpeed,
-      latency,
-      throughput,
-      location,
-      device,
-    } = networkMetrics;
+      if (!networkMetrics) {
+        console.warn("No network metrics available");
+        Alert.alert("Error", "Network metrics missing. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
 
-    const requestBody = {
-      userId: userId,
-      feedback: {
-        rating: selectedRating,
-        contextInfo: {
-          location: location ? location : "Unknown",
-          situationContext: selectedContext,
-        },
-        specificIssues: selectedIssues.map((type) => ({ type })),
-        additionalDetails: feedbackText,
-      },
-      technicalData: {
+      const {
         signalStrength,
         networkType,
         carrier,
@@ -99,37 +109,58 @@ export default function FeedbackPage({
         uploadSpeed,
         latency,
         throughput,
-        coordinates: location || null,
-      },
-      deviceInfo: {
-        platform: device.platform,
-        model: device.model || "Unknown",
-        osVersion: device.osVersion || "Unknown",
-      },
-    };
+        location,
+        device,
+      } = networkMetrics;
 
-    try {
-      const response = await fetch(`${apiUrl}/api/network-feedback`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const requestBody = {
+        userId: userId,
+        feedback: {
+          rating: selectedRating,
+          contextInfo: {
+            location: location ? location : "Unknown",
+            situationContext: selectedContext,
+          },
+          specificIssues: selectedIssues.map((type) => ({ type })),
+          additionalDetails: feedbackText,
         },
-        body: JSON.stringify(requestBody),
-      });
+        technicalData: {
+          signalStrength,
+          networkType,
+          carrier,
+          frequency,
+          bandwidth,
+          cellId,
+          pci,
+          dataSpeed,
+          uploadSpeed,
+          latency,
+          throughput,
+          coordinates: location || null,
+          submittedAt: new Date().toISOString(),
+        },
+        deviceInfo: {
+          platform: device.platform,
+          model: device.model || "Unknown",
+          osVersion: device.osVersion || "Unknown",
+        },
+      };
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong!");
-      }
-
+      // Use the offline feedback manager
+      const result = await offlineFeedbackManager.submitFeedback(requestBody);
+      setSubmissionResult(result);
       setSubmitted(true);
     } catch (error) {
       console.error("Submit error:", error);
-      Alert.alert("Error", "Failed to submit feedback.");
+      Alert.alert(
+        "Error",
+        "Failed to save feedback. Please check your storage permissions and try again."
+      );
     } finally {
       setTimeout(() => {
         setIsSubmitting(false);
         setSubmitted(false);
+        setSubmissionResult(null);
         setCurrentView("main");
       }, 3000);
     }
@@ -138,6 +169,21 @@ export default function FeedbackPage({
   const handleEmojiRating = (rating: number) => {
     if (onEmojiSelect) {
       onEmojiSelect(rating);
+    }
+  };
+
+  const handleManualSync = async () => {
+    try {
+      await offlineFeedbackManager.forceSyncFeedback();
+      Alert.alert(
+        "Sync Complete",
+        "All pending feedback has been synchronized."
+      );
+    } catch (error) {
+      Alert.alert(
+        "Sync Failed",
+        "Unable to sync feedback. Please check your internet connection."
+      );
     }
   };
 
@@ -267,10 +313,18 @@ export default function FeedbackPage({
         <StatusBar barStyle="light-content" />
         <View style={styles.successContainer}>
           <View style={styles.successCard}>
-            <Text style={styles.successEmoji}>✅</Text>
-            <Text style={styles.successTitle}>Feedback Submitted</Text>
+            <Text style={styles.successEmoji}>
+              {submissionResult?.offline ? "💾" : "✅"}
+            </Text>
+            <Text style={styles.successTitle}>
+              {submissionResult?.offline
+                ? "Feedback Saved Locally"
+                : "Feedback Submitted"}
+            </Text>
             <Text style={styles.successText}>
-              Thank you for helping improve network quality in your area
+              {submissionResult?.offline
+                ? "Your feedback has been saved and will sync when you're back online"
+                : "Thank you for helping improve network quality in your area"}
             </Text>
             <Text style={styles.redirectText}>
               Redirecting in a few seconds...
@@ -305,6 +359,50 @@ export default function FeedbackPage({
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
+          {/* Sync Status Card */}
+          {syncStatus &&
+            (syncStatus.totalPending > 0 || syncStatus.totalFailed > 0) && (
+              <View style={styles.card}>
+                <View style={styles.syncStatusHeader}>
+                  <Ionicons
+                    name={
+                      syncStatus.isCurrentlySyncing
+                        ? "sync"
+                        : "cloud-upload-outline"
+                    }
+                    size={20}
+                    color="#93C5FD"
+                  />
+                  <Text style={styles.syncStatusTitle}>Sync Status</Text>
+                  {isOnline && syncStatus.totalPending > 0 && (
+                    <TouchableOpacity
+                      onPress={handleManualSync}
+                      style={styles.syncButton}
+                    >
+                      <Text style={styles.syncButtonText}>Sync Now</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <View style={styles.syncStatusContent}>
+                  {syncStatus.totalPending > 0 && (
+                    <Text style={styles.syncStatusText}>
+                      📤 {syncStatus.totalPending} feedback(s) pending sync
+                    </Text>
+                  )}
+                  {syncStatus.totalFailed > 0 && (
+                    <Text style={styles.syncStatusText}>
+                      ❌ {syncStatus.totalFailed} feedback(s) failed to sync
+                    </Text>
+                  )}
+                  {syncStatus.isCurrentlySyncing && (
+                    <Text style={styles.syncStatusText}>
+                      🔄 Syncing feedback...
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+
           {/* Rating Summary */}
           <View style={styles.card}>
             <View style={styles.ratingRow}>
@@ -446,6 +544,12 @@ export default function FeedbackPage({
                   Signal strength, network type, location, and performance
                   metrics will be automatically included with your feedback
                 </Text>
+                {!isOnline && (
+                  <Text style={styles.offlineNotice}>
+                    📱 Offline mode: Feedback will be saved locally and synced
+                    when connection returns
+                  </Text>
+                )}
               </View>
             </View>
           </View>
@@ -471,13 +575,16 @@ export default function FeedbackPage({
                 <View style={styles.submitButtonContent}>
                   <Ionicons name="send-outline" size={20} color="white" />
                   <Text style={styles.submitButtonText}>
-                    Submit Network Feedback
+                    {isOnline
+                      ? "Submit Network Feedback"
+                      : "Save Feedback (Offline)"}
                   </Text>
                 </View>
               )}
             </TouchableOpacity>
             <Text style={styles.privacyText}>
               Anonymous submission • Data used for network optimization only
+              {!isOnline && " • Will sync when online"}
             </Text>
           </View>
         </ScrollView>
@@ -678,6 +785,44 @@ const styles = StyleSheet.create({
   },
   submitContainer: {
     paddingBottom: 32,
+  },
+  syncStatusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  syncStatusTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "white",
+    marginLeft: 8,
+    flex: 1,
+  },
+  syncButton: {
+    backgroundColor: "#3B82F6",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  syncButtonText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  syncStatusContent: {
+    marginTop: 8,
+  },
+  syncStatusText: {
+    color: "#D1D5DB",
+    fontSize: 14,
+    marginVertical: 2,
+  },
+  offlineNotice: {
+    fontSize: 12,
+    color: "#FBBF24",
+    marginTop: 8,
+    fontWeight: "500",
   },
   submitButton: {
     backgroundColor: "#2563EB",

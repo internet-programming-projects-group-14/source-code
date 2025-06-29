@@ -1,6 +1,7 @@
 import { measureThroughput } from "@/lib/calculateThroughput";
 import { requestAndroidPermissions } from "@/lib/permissions";
 import { NetworkMetrics } from "@/lib/types";
+import NetInfo from "@react-native-community/netinfo";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur";
@@ -34,7 +35,6 @@ import {
   storeSignalStrength,
   unregisterBackgroundTasks,
 } from "../../services/backgroundTaskService";
-import { getLastSyncInfo } from "@/services/backgroundTaskServicemetrics";
 
 const { SignalModule } = NativeModules;
 const { width, height } = Dimensions.get("window");
@@ -173,6 +173,7 @@ const QoEPopup: React.FC<{
 export default function NetworkQoEApp() {
   const router = useRouter();
   const [currentView, setCurrentView] = useState("main");
+  const [isOnline, setIsOnline] = useState(Boolean);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [networkMetrics, setNetworkMetrics] = useState<NetworkMetrics | null>(
     null
@@ -198,8 +199,6 @@ export default function NetworkQoEApp() {
     signalThreshold: -85, // dBm threshold for poor signal
     minTimeBetweenPopups: 420 * 1000, //5 minutes between popups for testing
   };
-
- 
 
   // Notification permission and setup functions
   const requestNotificationPermissions = async (): Promise<boolean> => {
@@ -628,6 +627,16 @@ export default function NetworkQoEApp() {
     };
   }, []);
 
+  // Monitor network connectivity
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOnline(state.isConnected || false);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const getSignalQuality = (dbm: number | null) => {
     if (dbm === null) return { text: "Unknown", color: "#6b7280", bars: 0 };
     if (dbm >= -50) return { text: "Excellent", color: "#34d399", bars: 5 };
@@ -767,7 +776,7 @@ export default function NetworkQoEApp() {
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Network Analysis</Text>
               <Text style={styles.statusBadge}>
-                {!isLoading ? "🟢 Analysis Complete" : "🔴 Analysis Incomplete"}
+                {isOnline ? "🟢 Online" : "🔴 Offline"}
               </Text>
             </View>
 
@@ -887,11 +896,7 @@ export default function NetworkQoEApp() {
               text: "QoE Analytics & Metrics",
               view: "statistics",
             },
-            {
-              icon: "users",
-              text: "Community Network Data",
-              view: "community",
-            },
+
             {
               icon: "trending-up",
               text: "Network Speed Test",
