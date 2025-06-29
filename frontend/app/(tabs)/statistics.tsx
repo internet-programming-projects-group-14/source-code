@@ -84,7 +84,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
       // Build URL with parameters
       const endpoint = metricEndpoints[selectedMetric];
       let url = `https://qoe.onrender.com/api/analytics/${endpoint}?period=${selectedPeriod}&userId=${userId}`;
-      console.log("URL", url);
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -146,7 +145,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   }, [currentData]);
 
   const getBarHeight = (value: number, maxValue: number) => {
-    console.log(value, maxValue);
     if ((value && maxValue === 0) || maxValue === 0) {
       return 0;
     } else {
@@ -441,55 +439,9 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                                 <View style={styles.zeroLine} />
                               )}
 
-                              {/* Regular bar for non-signal metrics OR positive signal values */}
-                              {(selectedMetric !== "signal" || !isNegative) && (
-                                <Animated.View
-                                  style={[
-                                    styles.barChartBar,
-                                    selectedMetric === "signal" && !isNegative
-                                      ? styles.positiveSignalBar
-                                      : null,
-                                    {
-                                      height: animatedValues[index].interpolate(
-                                        {
-                                          inputRange: [0, 1],
-                                          outputRange: [
-                                            "0%",
-                                            `${Math.abs(height)}%`,
-                                          ],
-                                        }
-                                      ),
-                                      backgroundColor:
-                                        currentMetric?.color || "#60a5fa",
-                                    },
-                                  ]}
-                                />
-                              )}
-
-                              {/* Negative signal bar */}
-                              {isNegative && (
-                                <Animated.View
-                                  style={[
-                                    styles.barChartBar,
-                                    styles.negativeSignalBar,
-                                    {
-                                      height: animatedValues[index].interpolate(
-                                        {
-                                          inputRange: [0, 1],
-                                          outputRange: [
-                                            "0%",
-                                            `${Math.abs(height)}%`,
-                                          ],
-                                        }
-                                      ),
-                                      backgroundColor: "#f87171", // Red for negative signal
-                                    },
-                                  ]}
-                                />
-                              )}
-
                               {/* Speed throughput bar (upload) - only for speed metric */}
-                              {selectedMetric === "speed" && item.throughput ? (
+                              {selectedMetric === "speed" &&
+                              typeof item.throughput !== "undefined" ? (
                                 <Animated.View
                                   style={[
                                     styles.barChartBar,
@@ -512,6 +464,54 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                                   ]}
                                 />
                               ) : null}
+
+                              {/* Regular bar for non-signal metrics OR positive signal values */}
+                              {(selectedMetric !== "signal" || !isNegative) &&
+                                selectedMetric !== "speed" && (
+                                  <Animated.View
+                                    style={[
+                                      styles.barChartBar,
+                                      selectedMetric === "signal" && !isNegative
+                                        ? styles.positiveSignalBar
+                                        : null,
+                                      {
+                                        height: animatedValues[
+                                          index
+                                        ].interpolate({
+                                          inputRange: [0, 1],
+                                          outputRange: [
+                                            "0%",
+                                            `${Math.abs(height)}%`,
+                                          ],
+                                        }),
+                                        backgroundColor:
+                                          currentMetric?.color || "#60a5fa",
+                                      },
+                                    ]}
+                                  />
+                                )}
+
+                              {/* Negative signal bar */}
+                              {isNegative && (
+                                <Animated.View
+                                  style={[
+                                    styles.barChartBar,
+                                    styles.negativeSignalBar,
+                                    {
+                                      height: animatedValues[index].interpolate(
+                                        {
+                                          inputRange: [0, 1],
+                                          outputRange: [
+                                            "0%",
+                                            `${Math.abs(height)}%`,
+                                          ],
+                                        }
+                                      ),
+                                      backgroundColor: "#f87171", // Red for negative signal
+                                    },
+                                  ]}
+                                />
+                              )}
                             </View>
 
                             <Text style={styles.barChartLabel}>
@@ -558,7 +558,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                       />
                       <Text style={styles.legendText}>Download</Text>
                     </View>
-                    <View style={styles.legendItem}>
+                    {/* <View style={styles.legendItem}>
                       <View
                         style={[
                           styles.legendColor,
@@ -566,7 +566,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                         ]}
                       />
                       <Text style={styles.legendText}>Upload</Text>
-                    </View>
+                    </View> */}
                   </View>
                 )}
 

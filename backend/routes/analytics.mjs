@@ -769,7 +769,6 @@ router.get("/latency", async (req, res) => {
     const lowestLatency =
       currentLatencyValues.length > 0 ? Math.min(...currentLatencyValues) : 0; // Best performance
 
-    console.log(currentLatencyValues);
 
     // Calculate variance (range)
     const variance =

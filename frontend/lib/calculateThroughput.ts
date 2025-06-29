@@ -62,7 +62,6 @@ export async function measureThroughput() {
     // Calculate throughput in Mbps
     const throughputBps = downloadSize / timeInSeconds; // Bytes per second
     const throughputMbps = (throughputBps * 8) / (1024 * 1024); // Convert to Megabits per second
-    console.log("Throughput measurement done", throughputMbps, "next step...");
     return {
       throughput: throughputMbps.toFixed(2),
       downloadSize,

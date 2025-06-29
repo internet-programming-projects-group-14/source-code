@@ -71,7 +71,6 @@ export default function FeedbackPage({
       dataSpeed,
       uploadSpeed,
       latency,
-      isConnected,
       throughput,
       location,
       device,

@@ -199,15 +199,7 @@ export default function NetworkQoEApp() {
     minTimeBetweenPopups: 420 * 1000, //5 minutes between popups for testing
   };
 
-  useEffect(() => {
-    const reuse = async () => {
-      const info = await getLastSyncInfo();
-      console.log("Info");
-
-      console.log(info);
-    };
-    reuse();
-  });
+ 
 
   // Notification permission and setup functions
   const requestNotificationPermissions = async (): Promise<boolean> => {
@@ -503,6 +495,7 @@ export default function NetworkQoEApp() {
         uploadSpeed: null,
         latency: null,
         isConnected: true,
+        // isConnected: cellInfo.isConnected ,
 
         throughput: null,
         location: locationData,
