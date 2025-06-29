@@ -91,12 +91,6 @@ See the `todo` file for in-progress features and pending tasks.
 
 ---
 
-## 👩‍💻 Contributors
-
-- **@jane-ahone**
-- \[Other contributors...]
-
----
 
 ## 📝 License
 
