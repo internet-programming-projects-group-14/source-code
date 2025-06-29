@@ -726,7 +726,7 @@ export default function NetworkQoEApp() {
             <Feather name="activity" size={18} color="#93c5fd" />
           </View>
           <View>
-            <Text style={styles.headerTitle}>Network QoE Monitor</Text>
+            <Text style={styles.headerTitle}>Vital Signal</Text>
             <Text style={styles.headerSubtitle}>
               Real-time Quality Analysis
             </Text>
