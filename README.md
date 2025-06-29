@@ -27,10 +27,11 @@ A full-stack web application for monitoring **Quality of Experience (QoE)** metr
 
 ## 🧰 Tech Stack
 
-- **Frontend**: React Native with Expo (likely)
+- **Frontend**: React Native with Expo 
 - **Backend**: Node.js / Express
 - **Database**: Firebase
 - **Version Control**: Git & GitHub
+- **Deployment**: Render
 
 ---
 
