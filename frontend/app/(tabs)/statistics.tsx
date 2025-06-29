@@ -106,9 +106,16 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   };
 
   // Animation for bars
+
   const animateBars = () => {
-    animatedValues.forEach((value, index) => {
+    // Stop all existing animations first
+    animatedValues.forEach((value) => {
+      value.stopAnimation();
       value.setValue(0);
+    });
+
+    // Start new animations
+    animatedValues.forEach((value, index) => {
       Animated.timing(value, {
         toValue: 1,
         duration: 800,
@@ -120,7 +127,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     fetchAnalyticsData();
-    animateBars();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMetric, selectedPeriod]);
 
@@ -130,9 +136,14 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     fetchAnalyticsData();
 
-    animateBars();
     setIsRefreshing(false);
   };
+
+  useEffect(() => {
+    if (currentData?.data) {
+      animateBars();
+    }
+  }, [currentData]);
 
   const getBarHeight = (value: number, maxValue: number) => {
     console.log(value, maxValue);
@@ -180,7 +191,6 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
           />
         </TouchableOpacity>
       </View>
-      
 
       <ScrollView
         style={styles.scrollView}

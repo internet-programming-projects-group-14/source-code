@@ -34,6 +34,7 @@ import {
   storeSignalStrength,
   unregisterBackgroundTasks,
 } from "../../services/backgroundTaskService";
+import { getLastSyncInfo } from "@/services/backgroundTaskServicemetrics";
 
 const { SignalModule } = NativeModules;
 const { width, height } = Dimensions.get("window");
@@ -197,6 +198,16 @@ export default function NetworkQoEApp() {
     signalThreshold: -85, // dBm threshold for poor signal
     minTimeBetweenPopups: 420 * 1000, //5 minutes between popups for testing
   };
+
+  useEffect(() => {
+    const reuse = async () => {
+      const info = await getLastSyncInfo();
+      console.log("Info");
+
+      console.log(info);
+    };
+    reuse();
+  });
 
   // Notification permission and setup functions
   const requestNotificationPermissions = async (): Promise<boolean> => {
@@ -439,7 +450,6 @@ export default function NetworkQoEApp() {
       setError(null);
 
       const hasPermissions = await requestAndroidPermissions();
-      console.log(hasPermissions);
       if (!hasPermissions) {
         throw new Error("Required permissions not granted");
       }
@@ -455,6 +465,7 @@ export default function NetworkQoEApp() {
         };
 
         const [address] = await Location.reverseGeocodeAsync(locationData);
+
         setAddress(address);
         if (address) {
           locationData = {

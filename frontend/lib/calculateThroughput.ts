@@ -5,7 +5,6 @@ export async function measureThroughput() {
   const expectedSizeBytes = 5 * 1024 * 1024; // 25MB in bytes
 
   try {
-    console.log("Starting throughput measurement...");
 
     // Add cache busting with timestamp
     const cacheBuster = Date.now() + Math.random();

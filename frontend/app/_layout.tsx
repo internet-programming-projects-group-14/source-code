@@ -29,12 +29,9 @@ function AppLayout() {
     checkFirstLaunch();
   }, []);
 
-  const { backgroundStatus, storedMetrics, isLoading, refresh, cleanup } =
-    useBackgroundMetrics();
+  const { backgroundStatus } = useBackgroundMetrics();
 
   useEffect(() => {
-    console.log("[RootLayout] Root layout component mounted.");
-    // Optional: Log status for initial check
     console.log(
       "[RootLayout] Initial background status:",
       JSON.stringify(backgroundStatus)

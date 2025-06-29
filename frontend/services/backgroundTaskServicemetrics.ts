@@ -15,7 +15,7 @@ const { SignalModule } = NativeModules;
 const BACKGROUND_FETCH_TASK = "background-fetch-metrics";
 const BACKGROUND_LOCATION_TASK = "background-location-metrics";
 
-const METRICS_COLLECTION_INTERVAL = 1 * 60; // 15 minutes (more realistic)
+const METRICS_COLLECTION_INTERVAL = 15 * 60;
 
 const STORAGE_KEY_PREFIX = "network_metrics_";
 const MAX_STORED_METRICS = 100; // Keep last 100 readings
@@ -84,13 +84,32 @@ async function collectNetworkMetrics(): Promise<Metrics> {
     const lastLocation = await AsyncStorage.getItem("last_background_location");
     if (lastLocation) {
       const parsedLocation = JSON.parse(lastLocation);
+
+      const locationData = {
+        latitude: parsedLocation.location.latitude,
+        longitude: parsedLocation.location.longitude,
+      };
+
+      const [address] = await Location.reverseGeocodeAsync(locationData);
+
       // Use location if it's less than 30 minutes old
       if (timestamp - parsedLocation.timestamp < 30 * 60 * 1000) {
-        metrics.location = {
-          latitude: parsedLocation.location.latitude,
-          longitude: parsedLocation.location.longitude,
-          accuracy: parsedLocation.location.accuracy,
-        };
+        if (address) {
+          metrics.location = {
+            latitude: parsedLocation.location.latitude,
+            longitude: parsedLocation.location.longitude,
+            accuracy: parsedLocation.location.accuracy,
+            city: address.city,
+            subRegion: address.subregion,
+            region: address.region,
+          };
+        } else {
+          metrics.location = {
+            latitude: parsedLocation.location.latitude,
+            longitude: parsedLocation.location.longitude,
+            accuracy: parsedLocation.location.accuracy,
+          };
+        }
       }
     }
   } catch (e) {
@@ -144,63 +163,213 @@ async function getStoredMetrics(): Promise<Metrics[]> {
 
 // Sync metrics to server
 
+async function syncMetricsInBatches(
+  unsyncedMetrics: Metrics[],
+  allMetrics: Metrics[],
+  userId: string,
+  batchSize: number = 10
+): Promise<void> {
+  const batches = [];
+  for (let i = 0; i < unsyncedMetrics.length; i += batchSize) {
+    batches.push(unsyncedMetrics.slice(i, i + batchSize));
+  }
+
+  console.log(
+    `[Background Sync] Syncing ${batches.length} batches of metrics...`
+  );
+
+  let syncedCount = 0;
+  const syncedIds = new Set<number>();
+
+  for (const [index, batch] of batches.entries()) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // Shorter timeout for batches
+
+      const response = await fetch(
+        "https://qoe.onrender.com/api/background/network-feedback",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": "BackgroundTask/1.0",
+          },
+          body: JSON.stringify({
+            userId: userId,
+            metrics: batch,
+            backgroundSync: true,
+            batchInfo: { current: index + 1, total: batches.length },
+          }),
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        batch.forEach((m) => syncedIds.add(m.timestamp));
+        syncedCount += batch.length;
+        console.log(
+          `[Background Sync] Batch ${index + 1}/${
+            batches.length
+          } synced successfully`
+        );
+      } else {
+        console.error(
+          `[Background Sync] Batch ${index + 1} failed with status:`,
+          response.status
+        );
+      }
+    } catch (batchError) {
+      console.error(
+        `[Background Sync] Error syncing batch ${index + 1}:`,
+        batchError
+      );
+    }
+  }
+
+  // Update synced status for successfully synced metrics
+  if (syncedCount > 0) {
+    const updatedMetrics = allMetrics.map((m) =>
+      syncedIds.has(m.timestamp) ? { ...m, synced: true } : m
+    );
+
+    await AsyncStorage.setItem(
+      `${STORAGE_KEY_PREFIX}data`,
+      JSON.stringify(updatedMetrics)
+    );
+
+    console.log(
+      `[Background Sync] Batch sync complete: ${syncedCount}/${unsyncedMetrics.length} metrics synced`
+    );
+  }
+}
+
 async function syncMetricsToServer(): Promise<void> {
-  // Retrieve the userId at the beginning
   const userId = await getOrCreateUserId();
-  console.log("[SyncMetrics] User ID is:", userId); // This log might be redundant here if it's already in onboarding
 
   try {
     const allMetrics = await getStoredMetrics();
     const unsyncedMetrics = allMetrics.filter((m) => !m.synced);
 
     if (unsyncedMetrics.length === 0) {
-      console.log("No unsynced metrics to send.");
+      console.log("[Background Sync] No unsynced metrics to send.");
       return;
     }
 
     console.log(
-      JSON.stringify({
-        userId: userId,
-        metrics: unsyncedMetrics,
-      })
+      `[Background Sync] Attempting to sync ${unsyncedMetrics.length} metrics...`
     );
 
-    const response = await fetch(
-      "https://qoe.onrender.com/api/background/network-feedback",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: userId,
-          metrics: unsyncedMetrics,
-        }),
+    // Add timeout for background requests (background tasks have limited execution time)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 seconds timeout
+
+    try {
+      const response = await fetch(
+        "https://qoe.onrender.com/api/background/network-feedback",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": "BackgroundTask/1.0", // Identify background requests
+          },
+          body: JSON.stringify({
+            userId: userId,
+            metrics: unsyncedMetrics,
+            backgroundSync: true, // Flag to indicate this is a background sync
+            timestamp: Date.now(),
+          }),
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        // Mark metrics as synced
+        const syncedIds = new Set(unsyncedMetrics.map((m) => m.timestamp));
+        const updatedMetrics = allMetrics.map((m) =>
+          syncedIds.has(m.timestamp) ? { ...m, synced: true } : m
+        );
+
+        await AsyncStorage.setItem(
+          `${STORAGE_KEY_PREFIX}data`,
+          JSON.stringify(updatedMetrics)
+        );
+
+        console.log(
+          `[Background Sync] Successfully synced ${unsyncedMetrics.length} metrics to server`
+        );
+
+        // Store last successful sync timestamp
+        await AsyncStorage.setItem(
+          `${STORAGE_KEY_PREFIX}last_sync`,
+          JSON.stringify({
+            timestamp: Date.now(),
+            count: unsyncedMetrics.length,
+          })
+        );
+      } else {
+        console.error(
+          "[Background Sync] Failed to sync metrics, server responded with:",
+          response.status
+        );
+
+        // Log response for debugging but don't throw to avoid breaking background task
+        try {
+          const errorBody = await response.text();
+          console.error("[Background Sync] Server error response:", errorBody);
+        } catch (e) {
+          console.error("[Background Sync] Could not read error response:", e);
+        }
+
+        // For certain status codes, you might want to implement retry logic
+        if (response.status >= 500) {
+          console.log(
+            "[Background Sync] Server error, will retry on next background task"
+          );
+        } else if (response.status === 413) {
+          // Payload too large - try to sync in smaller batches
+          console.log(
+            "[Background Sync] Payload too large, implementing batch sync..."
+          );
+          await syncMetricsInBatches(unsyncedMetrics, allMetrics, userId);
+        }
       }
-    );
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
 
-    if (response.ok) {
-      const syncedIds = new Set(unsyncedMetrics.map((m) => m.timestamp));
-      const updatedMetrics = allMetrics.map((m) =>
-        syncedIds.has(m.timestamp) ? { ...m, synced: true } : m
-      );
-      await AsyncStorage.setItem(
-        `${STORAGE_KEY_PREFIX}data`,
-        JSON.stringify(updatedMetrics)
-      );
-      console.log(`Synced ${unsyncedMetrics.length} metrics to server`);
-    } else {
-      console.error(
-        "Failed to sync metrics, server responded with:",
-        response.status
-      );
-      // Optional: Log response body for more details if server sends error messages
-      const errorBody = await response.text();
-      console.error("Server error response:", errorBody);
+      if (fetchError.name === "AbortError") {
+        console.error("[Background Sync] Request timed out");
+      } else {
+        console.error(
+          "[Background Sync] Network error during sync:",
+          fetchError
+        );
+      }
+
+      // Don't throw - let background task continue
     }
   } catch (error) {
-    console.error("Error syncing metrics:", error);
+    console.error("[Background Sync] Error syncing metrics:", error);
+    // Don't throw - we want background task to continue running
   }
 }
 
+// Function to get last sync info (useful for debugging)
+export async function getLastSyncInfo(): Promise<{
+  timestamp: number;
+  count: number;
+} | null> {
+  try {
+    const stored = await AsyncStorage.getItem(`${STORAGE_KEY_PREFIX}last_sync`);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.error("Error getting last sync info:", error);
+    return null;
+  }
+}
 
 export async function registerBackgroundTasks(): Promise<boolean> {
   console.log("Attempting to register background tasks...");
@@ -224,7 +393,7 @@ export async function registerBackgroundTasks(): Promise<boolean> {
         console.log("Starting background location updates...");
         await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
           accuracy: Location.Accuracy.Balanced,
-          timeInterval: 5 * 60 * 1000, // 5 minutes
+          timeInterval: 15 * 60 * 1000, // 5 minutes
           distanceInterval: 500, // 500 meters
           showsBackgroundLocationIndicator: true, // Set to true for easier debugging
         });
@@ -294,36 +463,6 @@ export async function registerBackgroundTasks(): Promise<boolean> {
     return false;
   }
 }
-// Register background tasks
-// export async function registerBackgroundTasks(): Promise<boolean> {
-//   try {
-//     const { status: locationPermission } =
-//       await Location.requestBackgroundPermissionsAsync();
-//     if (locationPermission === "granted") {
-//       await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
-//         accuracy: Location.Accuracy.Balanced,
-//         timeInterval: 5 * 60 * 1000, // 5 minutes
-//         distanceInterval: 500, // 500 meters
-//         showsBackgroundLocationIndicator: false,
-//       });
-//       console.log("Background location registered");
-//     } else {
-//       console.warn("Background location permission not granted.");
-//     }
-
-//     await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-//       minimumInterval: METRICS_COLLECTION_INTERVAL,
-//       stopOnTerminate: false,
-//       startOnBoot: true,
-//     });
-
-//     console.log("Background fetch registered");
-//     return true;
-//   } catch (error) {
-//     console.error("Error registering background tasks:", error);
-//     return false;
-//   }
-// }
 
 // Unregister background tasks
 export async function unregisterBackgroundTasks(): Promise<void> {
