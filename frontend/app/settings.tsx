@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { resetUserId } from "@/lib/identityToken";
 import * as SecureStore from "expo-secure-store";
+import { getLastSyncInfo } from "@/services/backgroundTaskServicemetrics";
 
 export default function SystemConfiguration() {
   const router = useRouter();
@@ -73,6 +74,14 @@ export default function SystemConfiguration() {
     </View>
   );
 
+  useEffect(() => {
+    const reuse = async () => {
+      const info = await getLastSyncInfo();
+      console.log("Last sync", info);
+    };
+    reuse();
+  });
+
   const handleResetUserId = () => {
     Alert.alert(
       "Reset Device ID", // Alert Title
@@ -81,20 +90,17 @@ export default function SystemConfiguration() {
         {
           text: "Cancel",
           onPress: () => console.log("Reset cancelled"),
-          style: "cancel", // This style makes it a "cancel" button
+          style: "cancel",
         },
         {
           text: "Reset",
           onPress: () => {
-            // Put your actual reset logic here
-            console.log("Device ID has been reset!");
-            // Example: Your original reset function call
-            // resetDeviceIdFunction();
+            resetUserId();
           },
-          style: "destructive", // This style can indicate a destructive action (often red text)
+          style: "destructive",
         },
       ],
-      { cancelable: false } // Prevents dismissal by tapping outside the alert box
+      { cancelable: false }
     );
   };
 
@@ -106,7 +112,7 @@ export default function SystemConfiguration() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.navigate("/")}
+          onPress={() => router.dismissAll()}
         >
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
