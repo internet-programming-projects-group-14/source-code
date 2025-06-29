@@ -101,6 +101,21 @@ app.post("/api/network-feedback", validateFeedback, async (req, res) => {
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
 
+    if (!userDoc.exists) {
+      // User does not exist, create a new document
+      await userRef.set({
+        createdAt: timestamp,
+        lastFeedbackAt: timestamp,
+      });
+      console.log(`New user created: ${userId}`);
+    } else {
+      // User exists, just update the lastFeedbackAt timestamp
+      await userRef.update({
+        lastFeedbackAt: timestamp,
+      });
+      console.log(`User ${userId} lastFeedbackAt updated.`);
+    }
+
     // Store feedback
     await db
       .collection("feedback")

@@ -36,6 +36,9 @@ export interface LocationData {
   latitude: number;
   longitude: number;
   accuracy: number;
+  city?: string | null;
+  subRegion?: string | null;
+  region?: string | null;
 }
 
 export interface DeviceInfo {

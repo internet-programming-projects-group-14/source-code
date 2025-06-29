@@ -73,22 +73,29 @@ export default function SystemConfiguration() {
     </View>
   );
 
-  const handleResetUserId = async () => {
-    const TOKEN_KEY = "user_unique_id";
-    try {
-      // Reset the user ID
-      await resetUserId();
-
-      // Check if the user ID exists
-      const userId = await SecureStore.getItemAsync(TOKEN_KEY);
-
-      if (!userId) {
-        // Navigate to onboarding if userId does not exist
-        router.navigate("/onboarding");
-      }
-    } catch (error) {
-      console.error("Error resetting user ID:", error);
-    }
+  const handleResetUserId = () => {
+    Alert.alert(
+      "Reset Device ID", // Alert Title
+      "Are you sure you want to reset your Device ID? This action cannot be undone and resets your analytics history.", // Alert Message
+      [
+        {
+          text: "Cancel",
+          onPress: () => console.log("Reset cancelled"),
+          style: "cancel", // This style makes it a "cancel" button
+        },
+        {
+          text: "Reset",
+          onPress: () => {
+            // Put your actual reset logic here
+            console.log("Device ID has been reset!");
+            // Example: Your original reset function call
+            // resetDeviceIdFunction();
+          },
+          style: "destructive", // This style can indicate a destructive action (often red text)
+        },
+      ],
+      { cancelable: false } // Prevents dismissal by tapping outside the alert box
+    );
   };
 
   return (

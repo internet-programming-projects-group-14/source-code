@@ -17,23 +17,55 @@ import * as BackgroundFetch from "expo-background-fetch";
 
 // Background metrics task definition
 
+
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   try {
     console.log(`[Global] Task ${BACKGROUND_FETCH_TASK} started`);
+
+    // Step 1: Collect new metrics
     const metrics = await collectNetworkMetrics();
+
     if (metrics && !metrics.error) {
+      // Step 2: Store metrics locally
       await storeMetrics(metrics);
-      await syncMetricsToServer();
-      console.log(`[Global] Task ${BACKGROUND_FETCH_TASK} completed`);
-      return BackgroundFetch.BackgroundFetchResult.NewData;
+      console.log(`[Global] Metrics collected and stored locally`);
+
+      // Step 3: Attempt to sync all unsynced metrics to server
+      try {
+        await syncMetricsToServer();
+        console.log(`[Global] Metrics synced to server successfully`);
+        return BackgroundFetch.BackgroundFetchResult.NewData;
+      } catch (syncError) {
+        console.error(`[Global] Failed to sync metrics to server:`, syncError);
+        // Even if sync fails, we still collected new data
+        return BackgroundFetch.BackgroundFetchResult.NewData;
+      }
     } else {
       console.log(
         `[Global] Task ${BACKGROUND_FETCH_TASK} failed to collect metrics.`
       );
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+
+      // Step 4: Even if we didn't collect new metrics, try to sync existing unsynced ones
+      try {
+        await syncMetricsToServer();
+        console.log(`[Global] Attempted to sync existing unsynced metrics`);
+        return BackgroundFetch.BackgroundFetchResult.NoData;
+      } catch (syncError) {
+        console.error(`[Global] Failed to sync existing metrics:`, syncError);
+        return BackgroundFetch.BackgroundFetchResult.NoData;
+      }
     }
   } catch (error) {
     console.error(`[Global] Task ${BACKGROUND_FETCH_TASK} error:`, error);
+
+    // Step 5: As a last resort, try to sync any existing metrics even on error
+    try {
+      await syncMetricsToServer();
+      console.log(`[Global] Emergency sync attempt completed`);
+    } catch (syncError) {
+      console.error(`[Global] Emergency sync also failed:`, syncError);
+    }
+
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });
