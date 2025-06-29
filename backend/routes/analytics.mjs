@@ -1275,7 +1275,7 @@ router.get("/throughput", async (req, res) => {
 
     // Get min/max for chart scaling
     const allThroughputValues = trendsData
-      .filter((d) => d.throughput !== null)
+      .filter((d) => d.throughput !== (null || 0))
       .map((d) => d.throughput);
     const chartMax =
       allThroughputValues.length > 0 ? Math.max(...allThroughputValues) : 0;
