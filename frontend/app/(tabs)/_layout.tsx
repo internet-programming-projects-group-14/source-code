@@ -36,7 +36,7 @@ export default function TabLayout() {
           ),
         }}
       />
-        <Tabs.Screen
+      <Tabs.Screen
         name="speed-test"
         options={{
           title: "Speed Test",
@@ -54,16 +54,6 @@ export default function TabLayout() {
           ),
         }}
       />
-         <Tabs.Screen
-        name="community"
-        options={{
-          title: "Analytics-Community",
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons name="people" size={24} color={color} />
-          ),
-        }}
-      />
     </Tabs>
-
   );
 }
