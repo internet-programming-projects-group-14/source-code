@@ -847,7 +847,7 @@ export default function NetworkQoEApp() {
               <View>
                 <Text style={styles.cardTitle}>
                   {networkMetrics.location && address
-                    ? address.name + " " + address.city
+                    ? address.name + ", " + address.city
                     : "Location Unknown"}
                 </Text>
                 <Text style={styles.detailItem}>

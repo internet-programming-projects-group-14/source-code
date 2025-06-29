@@ -769,6 +769,8 @@ router.get("/latency", async (req, res) => {
     const lowestLatency =
       currentLatencyValues.length > 0 ? Math.min(...currentLatencyValues) : 0; // Best performance
 
+    console.log(currentLatencyValues);
+
     // Calculate variance (range)
     const variance =
       currentLatencyValues.length > 0
@@ -840,7 +842,7 @@ router.get("/latency", async (req, res) => {
 
     // Get min/max for chart scaling
     const validValues = trendsData
-      .filter((d) => d.value !== null)
+      .filter((d) => d.value !== (null || 0))
       .map((d) => d.value);
     const chartMax = validValues.length > 0 ? Math.max(...validValues) : 0;
     const chartMin = validValues.length > 0 ? Math.min(...validValues) : 0;

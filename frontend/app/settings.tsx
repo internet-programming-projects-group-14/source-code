@@ -106,7 +106,7 @@ export default function SystemConfiguration() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.navigate("/")}
+          onPress={() => router.dismissAll()}
         >
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>

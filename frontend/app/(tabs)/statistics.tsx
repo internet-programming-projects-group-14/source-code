@@ -406,25 +406,89 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                       .slice(0, 30)
                       .map((item, index) => {
                         const maxVal = currentData.data.trends.max;
-                        const height = getBarHeight(item.value, maxVal);
-                        console.log(item);
+                        const minVal = currentData.data.trends.min || 0;
+
+                        // Only check for negatives if we're showing signal strength
+                        const isNegative =
+                          selectedMetric === "signal" && item.value < 0;
+
+                        let height;
+                        if (selectedMetric === "signal") {
+                          // For signal strength, normalize between min and max (handling negatives)
+                          const range = maxVal - minVal;
+                          height =
+                            range > 0
+                              ? ((item.value - minVal) / range) * 100
+                              : 0;
+                        } else {
+                          // For other metrics, use standard calculation (no negatives)
+                          height = getBarHeight(item.value, maxVal);
+                        }
 
                         return (
                           <View key={index} style={styles.barChartColumn}>
-                            <View style={styles.barChartBackground}>
-                              <Animated.View
-                                style={[
-                                  styles.barChartBar,
-                                  {
-                                    height: animatedValues[index].interpolate({
-                                      inputRange: [0, 1],
-                                      outputRange: ["0%", `${height}%`],
-                                    }),
-                                    backgroundColor:
-                                      currentMetric?.color || "#60a5fa",
-                                  },
-                                ]}
-                              />
+                            <View
+                              style={[
+                                styles.barChartBackground,
+                                // Only use split layout for signal strength
+                                selectedMetric === "signal"
+                                  ? styles.signalBarBackground
+                                  : null,
+                              ]}
+                            >
+                              {/* Zero line - only show for signal strength */}
+                              {selectedMetric === "signal" && (
+                                <View style={styles.zeroLine} />
+                              )}
+
+                              {/* Regular bar for non-signal metrics OR positive signal values */}
+                              {(selectedMetric !== "signal" || !isNegative) && (
+                                <Animated.View
+                                  style={[
+                                    styles.barChartBar,
+                                    selectedMetric === "signal" && !isNegative
+                                      ? styles.positiveSignalBar
+                                      : null,
+                                    {
+                                      height: animatedValues[index].interpolate(
+                                        {
+                                          inputRange: [0, 1],
+                                          outputRange: [
+                                            "0%",
+                                            `${Math.abs(height)}%`,
+                                          ],
+                                        }
+                                      ),
+                                      backgroundColor:
+                                        currentMetric?.color || "#60a5fa",
+                                    },
+                                  ]}
+                                />
+                              )}
+
+                              {/* Negative signal bar */}
+                              {isNegative && (
+                                <Animated.View
+                                  style={[
+                                    styles.barChartBar,
+                                    styles.negativeSignalBar,
+                                    {
+                                      height: animatedValues[index].interpolate(
+                                        {
+                                          inputRange: [0, 1],
+                                          outputRange: [
+                                            "0%",
+                                            `${Math.abs(height)}%`,
+                                          ],
+                                        }
+                                      ),
+                                      backgroundColor: "#f87171", // Red for negative signal
+                                    },
+                                  ]}
+                                />
+                              )}
+
+                              {/* Speed throughput bar (upload) - only for speed metric */}
                               {selectedMetric === "speed" && item.throughput ? (
                                 <Animated.View
                                   style={[
@@ -449,13 +513,33 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                                 />
                               ) : null}
                             </View>
+
                             <Text style={styles.barChartLabel}>
                               {item.time}
                             </Text>
-                            <Text style={styles.barChartValue}>
+                            <Text
+                              style={[
+                                styles.barChartValue,
+                                // Only color negatives red for signal strength
+                                selectedMetric === "signal" && isNegative
+                                  ? styles.negativeValueText
+                                  : styles.defaultValueText,
+                              ]}
+                            >
                               {selectedMetric === "speed"
-                                ? item.throughput.toFixed(1)
+                                ? item.throughput?.toFixed(1) ||
+                                  item.value.toFixed(1)
                                 : item.value.toFixed(1)}
+                              {/* Add units */}
+                              {selectedMetric === "signal" && (
+                                <Text style={styles.unitText}> dBm</Text>
+                              )}
+                              {selectedMetric === "speed" && (
+                                <Text style={styles.unitText}> Mbps</Text>
+                              )}
+                              {selectedMetric === "latency" && (
+                                <Text style={styles.unitText}> ms</Text>
+                              )}
                             </Text>
                           </View>
                         );
@@ -483,6 +567,24 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
                       />
                       <Text style={styles.legendText}>Upload</Text>
                     </View>
+                  </View>
+                )}
+
+                {/* Legend for signal strength */}
+                {selectedMetric === "signal" && (
+                  <View style={styles.chartLegend}>
+                    <View style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendColor,
+                          { backgroundColor: currentMetric?.color },
+                        ]}
+                      />
+                      <Text style={styles.legendText}>Signal Strength</Text>
+                    </View>
+                    <Text style={styles.signalNote}>
+                      Note: Values above 0 dBm indicate stronger signal
+                    </Text>
                   </View>
                 )}
               </View>
@@ -820,7 +922,6 @@ const styles = StyleSheet.create({
   barChartContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    height: 180,
     marginBottom: 20,
     alignItems: "flex-end",
   },
@@ -828,25 +929,28 @@ const styles = StyleSheet.create({
     width: 40, // Fixed width for each bar column
     marginHorizontal: 2, // Small spacing between bars
     alignItems: "center",
-    // flex: 1,
-    // alignItems: "center",
-    // justifyContent: "flex-end",
-    // marginHorizontal: 2,
   },
   barChartBackground: {
     width: "85%",
-    // height: "100%",
-    height: 180,
+    height: "100%",
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 6,
     overflow: "hidden",
     position: "relative",
   },
+
   barChartBar: {
     width: "100%",
     position: "absolute",
     bottom: 0,
     borderRadius: 6,
+  },
+
+  // Negative bars (grow downward from middle/top)
+  negativeBar: {
+    bottom: "50%",
+    transform: [{ scaleY: -1 }],
+    backgroundColor: "#f87171",
   },
   barChartLabel: {
     color: "rgba(255, 255, 255, 0.7)",
@@ -859,6 +963,57 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 2,
     fontWeight: "600",
+  },
+
+  signalBarBackground: {
+    justifyContent: "center", // Center the zero line
+  },
+
+  // Positive signal bars (grow upward from middle)
+  positiveSignalBar: {
+    bottom: "50%",
+  },
+
+  // Negative signal bars (grow downward from middle)
+  negativeSignalBar: {
+    top: "50%",
+  },
+
+  defaultValueText: {
+    color: "#374151",
+    fontWeight: "500",
+  },
+
+  unitText: {
+    fontSize: 8,
+    color: "#6b7280",
+    fontWeight: "normal",
+  },
+
+  signalNote: {
+    fontSize: 11,
+    color: "#6b7280",
+    fontStyle: "italic",
+    marginLeft: 8,
+  },
+
+  zeroLine: {
+    position: "absolute",
+    top: "50%",
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: "#6b7280",
+    opacity: 0.5,
+    zIndex: 1,
+  },
+
+  negativeValueText: {
+    color: "#f87171",
+  },
+
+  positiveValueText: {
+    color: "#10b981",
   },
   chartLegend: {
     flexDirection: "row",
