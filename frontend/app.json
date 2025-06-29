@@ -5,10 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "imageWidth": 200,
     "scheme": "qoe",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/signal.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1F2937",
+      "imageWidth": 200
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -60,7 +65,6 @@
           "backgroundFetchIntervalDescription": "Collect network metrics periodically"
         }
       ],
-
       [
         "expo-splash-screen",
         {
