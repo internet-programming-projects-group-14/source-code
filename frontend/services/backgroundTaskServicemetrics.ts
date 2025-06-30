@@ -15,7 +15,7 @@ const { SignalModule } = NativeModules;
 const BACKGROUND_FETCH_TASK = "background-fetch-metrics";
 const BACKGROUND_LOCATION_TASK = "background-location-metrics";
 
-const METRICS_COLLECTION_INTERVAL = 60 * 60; //1 minute for testing
+const METRICS_COLLECTION_INTERVAL = 5 * 60; //5 minutes for testing
 
 const STORAGE_KEY_PREFIX = "network_metrics_";
 const MAX_STORED_METRICS = 100; // Keep last 100 readings

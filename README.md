@@ -1,4 +1,4 @@
-# QoE Monitoring Application
+# Vital Signal
 
 A full-stack web application for monitoring **Quality of Experience (QoE)** metrics in real-time. This project is developed by Group 14 for the _Internet Programming_ course.
 
@@ -92,10 +92,8 @@ See the `todo` file for in-progress features and pending tasks.
 
 ---
 
-
 ## 📝 License
 
 This project is part of academic coursework and does not have a formal license. For educational use only.
 
 ---
-
