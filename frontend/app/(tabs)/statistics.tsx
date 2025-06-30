@@ -56,7 +56,7 @@ export default function StatisticsPage({ onBack }: { onBack: () => void }) {
   const metrics = [
     { value: "qoe", label: "QoE Score", icon: BarChart3, color: "#60a5fa" },
     { value: "speed", label: "Throughput", icon: Zap, color: "#a78bfa" },
-    { value: "signal", label: "RF Quality", icon: Signal, color: "#34d399" },
+    // { value: "signal", label: "RF Quality", icon: Signal, color: "#34d399" },
     { value: "latency", label: "Latency", icon: Clock, color: "#f59e0b" },
   ];
 
